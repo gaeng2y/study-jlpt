@@ -14,7 +14,6 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  bool _loading = false;
   String? _error;
 
   @override
@@ -60,17 +59,37 @@ class _AuthScreenState extends State<AuthScreen> {
                       const Text('기기 변경 후에도 학습 기록을 이어갈 수 있습니다.'),
                       const SizedBox(height: 18),
                       FilledButton.icon(
-                        onPressed:
-                            _loading ? null : () => _signIn(apple: false),
+                        onPressed: widget.state.oauthInProgress
+                            ? null
+                            : () => _signIn(apple: false),
                         icon: const Icon(Icons.g_mobiledata),
                         label: const Text('Google로 계속하기'),
                       ),
                       const SizedBox(height: 10),
                       OutlinedButton.icon(
-                        onPressed: _loading ? null : () => _signIn(apple: true),
+                        onPressed: widget.state.oauthInProgress
+                            ? null
+                            : () => _signIn(apple: true),
                         icon: const Icon(Icons.apple),
                         label: const Text('Apple로 계속하기'),
                       ),
+                      if (widget.state.oauthInProgress) ...[
+                        const SizedBox(height: 12),
+                        const Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ],
+                      if (widget.state.authErrorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          widget.state.authErrorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ],
                       if (_error != null) ...[
                         const SizedBox(height: 12),
                         Text(
@@ -90,10 +109,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _signIn({required bool apple}) async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() => _error = null);
 
     try {
       if (apple) {
@@ -103,14 +119,8 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } catch (e) {
       setState(() {
-        _error = '로그인 실패: $e';
+        _error = '로그인 시도에 실패했습니다: $e';
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
     }
   }
 }

@@ -63,6 +63,9 @@ class AppState extends ChangeNotifier {
   final WidgetCacheService _widgetCacheService = WidgetCacheService();
   final NotificationService _notificationService = NotificationService.instance;
   StreamSubscription<AuthState>? _authSub;
+  Timer? _oauthTimeoutTimer;
+  bool _oauthInProgress = false;
+  String? _authErrorMessage;
 
   bool get loading => _loading;
   List<ContentItem> get contentItems => List.unmodifiable(_contentItems);
@@ -82,6 +85,8 @@ class AppState extends ChangeNotifier {
 
   bool get needsAuth =>
       _contentRepository is SupabaseContentRepository && !isAuthenticated;
+  bool get oauthInProgress => _oauthInProgress;
+  String? get authErrorMessage => _authErrorMessage;
   String get authUserId {
     final client = _supabaseClientOrNull();
     if (client == null) {
@@ -238,12 +243,21 @@ class AppState extends ChangeNotifier {
     if (client == null) {
       return;
     }
-    debugPrint('OAuth redirectTo=studyjlpt://login-callback/ (google)');
-    await client.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: 'studyjlpt://login-callback/',
-      authScreenLaunchMode: LaunchMode.externalApplication,
-    );
+    _setOAuthInProgress(true);
+    _setAuthError(null);
+    _startOAuthTimeoutGuard();
+    try {
+      debugPrint('OAuth redirectTo=studyjlpt://login-callback/ (google)');
+      await client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'studyjlpt://login-callback/',
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      _setOAuthInProgress(false);
+      _setAuthError('Google 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      rethrow;
+    }
   }
 
   Future<void> signInWithApple() async {
@@ -251,12 +265,21 @@ class AppState extends ChangeNotifier {
     if (client == null) {
       return;
     }
-    debugPrint('OAuth redirectTo=studyjlpt://login-callback/ (apple)');
-    await client.auth.signInWithOAuth(
-      OAuthProvider.apple,
-      redirectTo: 'studyjlpt://login-callback/',
-      authScreenLaunchMode: LaunchMode.externalApplication,
-    );
+    _setOAuthInProgress(true);
+    _setAuthError(null);
+    _startOAuthTimeoutGuard();
+    try {
+      debugPrint('OAuth redirectTo=studyjlpt://login-callback/ (apple)');
+      await client.auth.signInWithOAuth(
+        OAuthProvider.apple,
+        redirectTo: 'studyjlpt://login-callback/',
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+    } catch (e) {
+      _setOAuthInProgress(false);
+      _setAuthError('Apple 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      rethrow;
+    }
   }
 
   Future<void> signOut() async {
@@ -324,11 +347,49 @@ class AppState extends ChangeNotifier {
       return;
     }
 
-    _authSub = client.auth.onAuthStateChange.listen((_) async {
+    _authSub = client.auth.onAuthStateChange.listen((state) async {
+      if (state.event == AuthChangeEvent.signedIn) {
+        _oauthTimeoutTimer?.cancel();
+        _setOAuthInProgress(false);
+        _setAuthError(null);
+      }
+      if (state.event == AuthChangeEvent.signedOut) {
+        _oauthTimeoutTimer?.cancel();
+        _setOAuthInProgress(false);
+      }
+
       _profileSettings = await _profileRepository.getSettings();
       _summary = await _getTodaySummary();
       notifyListeners();
     });
+  }
+
+  void _startOAuthTimeoutGuard() {
+    _oauthTimeoutTimer?.cancel();
+    _oauthTimeoutTimer = Timer(const Duration(seconds: 45), () {
+      if (!isAuthenticated) {
+        _setOAuthInProgress(false);
+        _setAuthError(
+          '로그인 콜백 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+        );
+      }
+    });
+  }
+
+  void _setOAuthInProgress(bool value) {
+    if (_oauthInProgress == value) {
+      return;
+    }
+    _oauthInProgress = value;
+    notifyListeners();
+  }
+
+  void _setAuthError(String? message) {
+    if (_authErrorMessage == message) {
+      return;
+    }
+    _authErrorMessage = message;
+    notifyListeners();
   }
 
   Future<void> _refreshWidgetCache() async {
@@ -344,6 +405,7 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _oauthTimeoutTimer?.cancel();
     _authSub?.cancel();
     super.dispose();
   }
