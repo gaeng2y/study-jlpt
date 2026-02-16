@@ -154,3 +154,11 @@ select
   (select count(*) from open_users)::float
   / nullif((select count(*) from search_users), 0) as search_to_open_rate;
 ```
+
+## 대시보드 기준선
+- 기간은 `최근 7일`, `최근 30일`로 고정
+- 뷰: `public.analytics_kpi_baseline`
+- 권장 KPI:
+  - `plan_started_events`
+  - `study_completion_rate_pct`
+  - `search_to_open_rate_pct`

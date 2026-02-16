@@ -10,6 +10,8 @@
 순서대로 SQL Editor에서 실행:
 1. `supabase/migrations/20260216191000_harden_import_vocab_srs.sql`
 2. `supabase/migrations/20260216202000_add_release_telemetry_tables.sql`
+3. `supabase/migrations/20260217022000_add_analytics_kpi_views.sql`
+4. `supabase/migrations/20260217023000_add_analytics_baseline_view.sql`
 
 ## 2) Flutter 준비
 ```bash
@@ -44,3 +46,4 @@ flutter build appbundle --release
 - Supabase `analytics_events` 최근 이벤트 확인
 - Supabase `client_error_logs` 오류 이벤트 확인
 - 로그인 성공률 / 세션 완료율 / crash-free 체크
+- 기준선 기간은 `7일`/`30일` 고정 (뷰: `analytics_kpi_baseline`)
