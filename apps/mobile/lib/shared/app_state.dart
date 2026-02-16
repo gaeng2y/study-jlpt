@@ -115,6 +115,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<List<StudyCard>> getStudyQueue(PlanMode mode) async {
+    final random = Random();
     final target = switch (mode) {
       PlanMode.min3 => 3,
       PlanMode.min10 => 10,
@@ -123,18 +124,26 @@ class AppState extends ChangeNotifier {
 
     final dueQueue = await _getDueQueue(target);
     if (dueQueue.isNotEmpty) {
-      return dueQueue;
+      final shuffledDue = dueQueue.toList()..shuffle(random);
+      return shuffledDue;
     }
 
-    // If there is no due queue yet, start learning from seeded content.
+    final learnedIds = await _studyRepository.learnedContentIds();
+
+    // If there is no due queue yet, start learning from unlearned content.
     final levelItems = _contentItems
-        .where((item) => item.jlptLevel == _profileSettings.targetLevel)
+        .where((item) =>
+            item.jlptLevel == _profileSettings.targetLevel &&
+            !learnedIds.contains(item.id))
         .toList();
-    final source = levelItems.isNotEmpty ? levelItems : _contentItems;
+    final source = levelItems.isNotEmpty
+        ? levelItems
+        : _contentItems.where((item) => !learnedIds.contains(item.id)).toList();
     if (source.isEmpty) {
       return const [];
     }
 
+    source.shuffle(random);
     final count = source.length < target ? source.length : target;
     return source.take(count).map((item) {
       return StudyCard(

@@ -71,6 +71,22 @@ class SupabaseStudyRepository implements StudyRepository {
   }
 
   @override
+  Future<Set<String>> learnedContentIds() async {
+    final userId = _userId;
+    if (userId == null) {
+      return <String>{};
+    }
+    final rows = await _client
+        .from('user_srs')
+        .select('content_id')
+        .eq('user_id', userId);
+    return rows
+        .map((row) => row['content_id'] as String?)
+        .whereType<String>()
+        .toSet();
+  }
+
+  @override
   Future<List<StudyCard>> dueQueue({required int limit}) async {
     final userId = _userId;
     if (userId == null) {

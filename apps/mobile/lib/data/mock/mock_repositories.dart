@@ -41,9 +41,14 @@ class MockStudyRepository implements StudyRepository {
             .toList(growable: true);
 
   final List<StudyCard> _queue;
+  final Set<String> _learnedIds = <String>{};
 
   @override
   Future<int> dueCount() async => _queue.length;
+
+  @override
+  Future<Set<String>> learnedContentIds() async =>
+      Set<String>.from(_learnedIds);
 
   @override
   Future<TodaySummary> todaySummary() async {
@@ -64,6 +69,7 @@ class MockStudyRepository implements StudyRepository {
 
   @override
   Future<void> gradeCard({required StudyCard card, required bool good}) async {
+    _learnedIds.add(card.content.id);
     _queue.removeWhere((element) => element.content.id == card.content.id);
 
     if (!good) {
