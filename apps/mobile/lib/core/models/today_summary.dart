@@ -5,6 +5,8 @@ class TodaySummary {
     required this.estMinutes,
     required this.streak,
     required this.freezeLeft,
+    this.cardsDone = 0,
+    this.isCompleted = false,
   });
 
   final int dueCount;
@@ -12,4 +14,6 @@ class TodaySummary {
   final int estMinutes;
   final int streak;
   final int freezeLeft;
+  final int cardsDone;
+  final bool isCompleted;
 }

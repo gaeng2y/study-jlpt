@@ -53,11 +53,11 @@ class AppState extends ChangeNotifier {
     estMinutes: 1,
     streak: 0,
     freezeLeft: 0,
+    cardsDone: 0,
+    isCompleted: false,
   );
 
-  int _todayDone = 0;
   int _sessionDone = 0;
-  bool _todayCompleted = false;
   bool _loading = false;
   ProfileSettings _profileSettings = ProfileSettings.defaults;
   final WidgetCacheService _widgetCacheService = WidgetCacheService();
@@ -71,7 +71,7 @@ class AppState extends ChangeNotifier {
   List<ContentItem> get contentItems => List.unmodifiable(_contentItems);
   ContentItem? get todayWord => _todayWord;
   int get sessionDone => _sessionDone;
-  bool get todayCompleted => _todayCompleted;
+  bool get todayCompleted => _summary.isCompleted;
   TodaySummary get summary => _summary;
   String get dataSource =>
       _contentRepository is SupabaseContentRepository ? 'Supabase' : 'Mock';
@@ -167,21 +167,12 @@ class AppState extends ChangeNotifier {
     await _gradeCard(card: card, good: good);
 
     _sessionDone += 1;
-    _todayDone += 1;
-    if (_todayDone >= 3) {
-      _todayCompleted = true;
-    }
-
     _summary = await _getTodaySummary();
     await _refreshWidgetCache();
     notifyListeners();
   }
 
   Future<void> completeSession() async {
-    if (!_todayCompleted) {
-      _todayCompleted = true;
-    }
-
     await _studyRepository.completeTodaySession();
     _summary = await _getTodaySummary();
     await _refreshWidgetCache();
@@ -296,7 +287,10 @@ class AppState extends ChangeNotifier {
       estMinutes: 1,
       streak: 0,
       freezeLeft: 0,
+      cardsDone: 0,
+      isCompleted: false,
     );
+    _sessionDone = 0;
     notifyListeners();
   }
 

@@ -56,8 +56,8 @@ class TodayScreen extends StatelessWidget {
                       _Metric(label: 'streak', value: '${summary.streak}일'),
                       _Metric(label: 'freeze', value: '${summary.freezeLeft}개'),
                       _Metric(
-                        label: '오늘 완료',
-                        value: state.todayCompleted ? '완료' : '진행 전',
+                        label: '오늘 진행',
+                        value: '${summary.cardsDone}/$minCards',
                       ),
                     ],
                   ),
@@ -68,7 +68,8 @@ class TodayScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('오늘의 단어', style: TextStyle(fontWeight: FontWeight.w700)),
+                      const Text('오늘의 단어',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 8),
                       if (state.todayWord != null) ...[
                         Text(
@@ -84,7 +85,7 @@ class TodayScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 _PlanButton(
                   isIos: isIos,
-                  label: '최소 완료 ${minCards}카드',
+                  label: '최소 완료 $minCards카드',
                   subtitle: '루틴이 끊기지 않게 짧게 끝내기',
                   onTap: () => _start(context, minMode),
                 ),
@@ -187,7 +188,8 @@ class _PlanButton extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(label,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
                     Text(subtitle),
                   ],
                 ),
@@ -212,7 +214,8 @@ class _PlanButton extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(label,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
                 Text(subtitle),
               ],
             ),

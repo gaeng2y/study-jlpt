@@ -59,6 +59,8 @@ class MockStudyRepository implements StudyRepository {
       estMinutes: (due / 4).ceil().clamp(1, 60),
       streak: 6,
       freezeLeft: 1,
+      cardsDone: 0,
+      isCompleted: false,
     );
   }
 

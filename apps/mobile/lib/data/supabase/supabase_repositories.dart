@@ -168,6 +168,8 @@ class SupabaseStudyRepository implements StudyRepository {
         estMinutes: 1,
         streak: 0,
         freezeLeft: 0,
+        cardsDone: 0,
+        isCompleted: false,
       );
     }
 
@@ -181,6 +183,8 @@ class SupabaseStudyRepository implements StudyRepository {
         estMinutes: 1,
         streak: 0,
         freezeLeft: 0,
+        cardsDone: 0,
+        isCompleted: false,
       );
     }
 
@@ -190,6 +194,8 @@ class SupabaseStudyRepository implements StudyRepository {
       estMinutes: (row['est_minutes'] as num?)?.toInt() ?? 1,
       streak: (row['streak'] as num?)?.toInt() ?? 0,
       freezeLeft: (row['freeze_left'] as num?)?.toInt() ?? 0,
+      cardsDone: (row['cards_done'] as num?)?.toInt() ?? 0,
+      isCompleted: (row['is_completed'] as bool?) ?? false,
     );
   }
 
