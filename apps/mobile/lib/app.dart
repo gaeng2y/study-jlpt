@@ -10,6 +10,7 @@ import 'features/auth/splash_screen.dart';
 import 'features/content/content_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/profile/profile_screen.dart';
+import 'features/study/kana_writing_screen.dart';
 import 'features/study/study_session_screen.dart';
 import 'features/today/today_screen.dart';
 import 'shared/app_state.dart';
@@ -83,14 +84,14 @@ class _RootPageState extends State<_RootPage> {
 
     if (host == 'review' || path == '/review') {
       if (mounted) {
-        setState(() => _index = 1);
+        setState(() => _index = 2);
       }
       return;
     }
 
     if (host == 'content' || path.startsWith('/content')) {
       if (mounted) {
-        setState(() => _index = 2);
+        setState(() => _index = 3);
       }
       return;
     }
@@ -100,6 +101,7 @@ class _RootPageState extends State<_RootPage> {
   Widget build(BuildContext context) {
     final pages = [
       TodayScreen(state: _state),
+      KanaWritingScreen(state: _state),
       StudySessionScreen(state: _state),
       ContentScreen(state: _state),
       ProfileScreen(state: _state),
@@ -179,6 +181,10 @@ class _BottomNav extends StatelessWidget {
               ),
               BottomNavigationBarItem(
                 icon: Icon(CupertinoIcons.square_list),
+                label: '연습',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.play_rectangle),
                 label: '학습',
               ),
               BottomNavigationBarItem(
@@ -200,7 +206,8 @@ class _BottomNav extends StatelessWidget {
       onDestinationSelected: onChanged,
       destinations: const [
         NavigationDestination(icon: Icon(Icons.today_outlined), label: '오늘'),
-        NavigationDestination(icon: Icon(Icons.quiz_outlined), label: '학습'),
+        NavigationDestination(icon: Icon(Icons.quiz_outlined), label: '연습'),
+        NavigationDestination(icon: Icon(Icons.school_outlined), label: '학습'),
         NavigationDestination(
             icon: Icon(Icons.menu_book_outlined), label: '콘텐츠'),
         NavigationDestination(icon: Icon(Icons.person_outline), label: '프로필'),
