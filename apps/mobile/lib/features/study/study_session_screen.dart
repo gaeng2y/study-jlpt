@@ -36,10 +36,14 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   String? _lastGradeLabel;
   Timer? _gradeLabelTimer;
   final FlutterTts _tts = FlutterTts();
+  late final DateTime _sessionStartedAt;
+  int _goodCount = 0;
+  int _againCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _sessionStartedAt = DateTime.now();
     _nativeStudyChannel.setMethodCallHandler(_handleNativeStudyEvent);
     _configureTts();
     _loadQueue();
@@ -143,6 +147,13 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
 
   Widget _doneView(BuildContext context) {
     final isIos = Theme.of(context).platform == TargetPlatform.iOS;
+    final elapsed = DateTime.now().difference(_sessionStartedAt);
+    final elapsedMinutes = elapsed.inMinutes;
+    final elapsedSeconds = elapsed.inSeconds % 60;
+    final totalAnswers = _goodCount + _againCount;
+    final goodRate =
+        totalAnswers == 0 ? 0 : ((_goodCount / totalAnswers) * 100).round();
+
     final content = Padding(
       padding: const EdgeInsets.all(22),
       child: Column(
@@ -157,6 +168,8 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
           ),
           const SizedBox(height: 10),
           Text('처리 카드 ${_queue.length}개'),
+          Text('GOOD $_goodCount · AGAIN $_againCount (정답률 $goodRate%)'),
+          Text('소요 시간 $elapsedMinutes분 $elapsedSeconds초'),
           Text('현재 streak ${widget.state.summary.streak}일'),
           const SizedBox(height: 18),
           FilledButton(
@@ -216,6 +229,11 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
       _index += 1;
       _submitting = false;
       _lastGradeLabel = good ? 'GOOD' : 'AGAIN';
+      if (good) {
+        _goodCount += 1;
+      } else {
+        _againCount += 1;
+      }
     });
     _gradeLabelTimer?.cancel();
     _gradeLabelTimer = Timer(const Duration(milliseconds: 700), () {
