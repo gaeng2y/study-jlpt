@@ -8,7 +8,6 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../../core/models/study_card.dart';
 import '../../shared/app_state.dart';
 import '../../shared/widgets/glass_surface.dart';
-import 'kana_writing_screen.dart';
 
 class StudySessionScreen extends StatefulWidget {
   const StudySessionScreen({
@@ -118,13 +117,6 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
                   onPressed: _speaking ? null : () => _speakCard(card),
                   icon: const Icon(Icons.volume_up_rounded),
                   label: Text(_speaking ? '재생 중...' : '듣기'),
-                ),
-              ),
-              Center(
-                child: TextButton.icon(
-                  onPressed: () => _openWritingPractice(context),
-                  icon: const Icon(Icons.edit_note_rounded),
-                  label: const Text('문자 쓰기'),
                 ),
               ),
               const SizedBox(height: 20),
@@ -294,14 +286,6 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
     }
     await _tts.stop();
     await _tts.speak(text);
-  }
-
-  Future<void> _openWritingPractice(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => KanaWritingScreen(state: widget.state),
-      ),
-    );
   }
 
   Widget _buildEmbeddedNativeCard(StudyCard card) {
