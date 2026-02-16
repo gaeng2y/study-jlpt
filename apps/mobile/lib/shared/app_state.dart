@@ -67,6 +67,7 @@ class AppState extends ChangeNotifier {
   StreamSubscription<AuthState>? _authSub;
   Timer? _oauthTimeoutTimer;
   bool _oauthInProgress = false;
+  String? _oauthProviderInProgress;
   String? _authErrorMessage;
 
   bool get loading => _loading;
@@ -301,8 +302,12 @@ class AppState extends ChangeNotifier {
     if (client == null) {
       return;
     }
+    _oauthProviderInProgress = 'google';
     _setOAuthInProgress(true);
     _setAuthError(null);
+    await _telemetry.logEvent('login_started', {
+      'provider': 'google',
+    });
     _startOAuthTimeoutGuard();
     try {
       debugPrint('OAuth redirectTo=studyjlpt://login-callback/ (google)');
@@ -313,6 +318,11 @@ class AppState extends ChangeNotifier {
       );
     } catch (e) {
       _setOAuthInProgress(false);
+      _oauthProviderInProgress = null;
+      await _telemetry.logEvent('login_failed', {
+        'provider': 'google',
+        'error_type': e.runtimeType.toString(),
+      });
       _setAuthError('Google 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       rethrow;
     }
@@ -323,8 +333,12 @@ class AppState extends ChangeNotifier {
     if (client == null) {
       return;
     }
+    _oauthProviderInProgress = 'apple';
     _setOAuthInProgress(true);
     _setAuthError(null);
+    await _telemetry.logEvent('login_started', {
+      'provider': 'apple',
+    });
     _startOAuthTimeoutGuard();
     try {
       debugPrint('OAuth redirectTo=studyjlpt://login-callback/ (apple)');
@@ -335,6 +349,11 @@ class AppState extends ChangeNotifier {
       );
     } catch (e) {
       _setOAuthInProgress(false);
+      _oauthProviderInProgress = null;
+      await _telemetry.logEvent('login_failed', {
+        'provider': 'apple',
+        'error_type': e.runtimeType.toString(),
+      });
       _setAuthError('Apple 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       rethrow;
     }
@@ -497,6 +516,7 @@ class AppState extends ChangeNotifier {
         if (state.event == AuthChangeEvent.signedIn) {
           _oauthTimeoutTimer?.cancel();
           _setOAuthInProgress(false);
+          _oauthProviderInProgress = null;
           _setAuthError(null);
           await _telemetry.logEvent('login_success', {
             'provider': state.session?.user.appMetadata['provider'] ?? 'oauth',
@@ -505,6 +525,7 @@ class AppState extends ChangeNotifier {
         if (state.event == AuthChangeEvent.signedOut) {
           _oauthTimeoutTimer?.cancel();
           _setOAuthInProgress(false);
+          _oauthProviderInProgress = null;
         }
 
         _profileSettings = await _profileRepository.getSettings();
@@ -525,10 +546,16 @@ class AppState extends ChangeNotifier {
     _oauthTimeoutTimer?.cancel();
     _oauthTimeoutTimer = Timer(const Duration(seconds: 45), () {
       if (!isAuthenticated) {
+        final provider = _oauthProviderInProgress ?? 'unknown';
         _setOAuthInProgress(false);
+        _oauthProviderInProgress = null;
         _setAuthError(
           '로그인 콜백 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.',
         );
+        _telemetry.logEvent('login_timeout', {
+          'provider': provider,
+          'timeout_seconds': 45,
+        });
       }
     });
   }
