@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/models/content_item.dart';
 import '../../core/models/profile_settings.dart';
 import '../../core/models/study_card.dart';
+import '../../core/models/today_summary.dart';
 import '../repositories/content_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../repositories/study_repository.dart';
@@ -65,19 +66,8 @@ class SupabaseStudyRepository implements StudyRepository {
 
   @override
   Future<int> dueCount() async {
-    final userId = _userId;
-    if (userId == null) {
-      return 0;
-    }
-    final now = DateTime.now().toUtc().toIso8601String();
-
-    final rows = await _client
-        .from('user_srs')
-        .select('content_id')
-        .eq('user_id', userId)
-        .lte('due_at', now);
-
-    return rows.length;
+    final summary = await todaySummary();
+    return summary.dueCount;
   }
 
   @override
@@ -155,6 +145,50 @@ class SupabaseStudyRepository implements StudyRepository {
       'p_studied_minutes': 1,
     });
   }
+
+  @override
+  Future<TodaySummary> todaySummary() async {
+    final userId = _userId;
+    if (userId == null) {
+      return const TodaySummary(
+        dueCount: 0,
+        newCount: 0,
+        estMinutes: 1,
+        streak: 0,
+        freezeLeft: 0,
+      );
+    }
+
+    final rows = await _client.rpc('get_today_summary');
+    final row =
+        (rows as List).isNotEmpty ? rows.first as Map<String, dynamic> : null;
+    if (row == null) {
+      return const TodaySummary(
+        dueCount: 0,
+        newCount: 0,
+        estMinutes: 1,
+        streak: 0,
+        freezeLeft: 0,
+      );
+    }
+
+    return TodaySummary(
+      dueCount: (row['due_count'] as num?)?.toInt() ?? 0,
+      newCount: (row['new_count'] as num?)?.toInt() ?? 0,
+      estMinutes: (row['est_minutes'] as num?)?.toInt() ?? 1,
+      streak: (row['streak'] as num?)?.toInt() ?? 0,
+      freezeLeft: (row['freeze_left'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  @override
+  Future<void> completeTodaySession() async {
+    final userId = _userId;
+    if (userId == null) {
+      return;
+    }
+    await _client.rpc('mark_today_complete');
+  }
 }
 
 class SupabaseProfileRepository implements ProfileRepository {
@@ -212,7 +246,7 @@ class SupabaseProfileRepository implements ProfileRepository {
     } on PostgrestException catch (e) {
       // Backward compatibility for projects that have not applied
       // the onboarding_completed migration yet.
-      if (!_isMissingOnboardingColumn(e)) {
+      if (!_isMissingProfileOptionalColumn(e)) {
         rethrow;
       }
       row = await _client
@@ -252,7 +286,7 @@ class SupabaseProfileRepository implements ProfileRepository {
         'exam_date': settings.examDate?.toIso8601String().split('T').first,
       }).eq('id', userId);
     } on PostgrestException catch (e) {
-      if (!_isMissingOnboardingColumn(e)) {
+      if (!_isMissingProfileOptionalColumn(e)) {
         rethrow;
       }
       await _client.from('profiles').update({
@@ -265,8 +299,9 @@ class SupabaseProfileRepository implements ProfileRepository {
     }
   }
 
-  bool _isMissingOnboardingColumn(PostgrestException e) {
-    final missingColumn = e.message.contains('onboarding_completed');
+  bool _isMissingProfileOptionalColumn(PostgrestException e) {
+    final missingColumn = e.message.contains('onboarding_completed') ||
+        e.message.contains('reminder_time');
     return missingColumn && (e.code == '42703' || e.code == 'PGRST204');
   }
 }

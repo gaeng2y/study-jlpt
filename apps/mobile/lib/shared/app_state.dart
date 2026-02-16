@@ -32,7 +32,6 @@ class AppState extends ChangeNotifier {
         _profileRepository = profileRepository ?? _buildProfileRepository() {
     _getTodaySummary = GetTodaySummaryUseCase(
       studyRepository: _studyRepository,
-      profileRepository: _profileRepository,
     );
     _getDueQueue = GetDueQueueUseCase(_studyRepository);
     _gradeCard = GradeCardUseCase(_studyRepository);
@@ -169,6 +168,7 @@ class AppState extends ChangeNotifier {
       _todayCompleted = true;
     }
 
+    await _studyRepository.completeTodaySession();
     _summary = await _getTodaySummary();
     await _refreshWidgetCache();
     notifyListeners();

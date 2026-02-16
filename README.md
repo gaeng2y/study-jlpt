@@ -150,6 +150,7 @@ flutter run -d "iPhone 17 Pro"
 현재 저장소 기준 필수 마이그레이션:
 1. `supabase/migrations/20260215170000_add_onboarding_completed.sql`
 2. `supabase/migrations/20260215234500_use_import_vocab_directly.sql`
+3. `supabase/migrations/20260216162000_server_aggregation_sync.sql`
 
 실행 위치:
 - Supabase Dashboard -> SQL Editor

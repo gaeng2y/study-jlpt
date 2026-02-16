@@ -3,6 +3,7 @@ import 'dart:math';
 import '../../core/models/content_item.dart';
 import '../../core/models/profile_settings.dart';
 import '../../core/models/study_card.dart';
+import '../../core/models/today_summary.dart';
 import '../../data/repositories/content_repository.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../data/repositories/study_repository.dart';
@@ -45,6 +46,18 @@ class MockStudyRepository implements StudyRepository {
   Future<int> dueCount() async => _queue.length;
 
   @override
+  Future<TodaySummary> todaySummary() async {
+    final due = _queue.length;
+    return TodaySummary(
+      dueCount: due,
+      newCount: 5,
+      estMinutes: (due / 4).ceil().clamp(1, 60),
+      streak: 6,
+      freezeLeft: 1,
+    );
+  }
+
+  @override
   Future<List<StudyCard>> dueQueue({required int limit}) async {
     return _queue.take(limit).toList();
   }
@@ -67,6 +80,9 @@ class MockStudyRepository implements StudyRepository {
       );
     }
   }
+
+  @override
+  Future<void> completeTodaySession() async {}
 }
 
 class MockProfileRepository implements ProfileRepository {
