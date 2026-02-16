@@ -21,7 +21,10 @@ class SupabaseContentRepository implements ContentRepository {
         .eq('is_active', true)
         .order('imported_at');
 
-    return rows.map(_toContent).toList();
+    return rows
+        .map(_toContentOrNull)
+        .whereType<ContentItem>()
+        .toList(growable: false);
   }
 
   @override
@@ -42,19 +45,14 @@ class SupabaseContentRepository implements ContentRepository {
 
     final rows = await builder.order('imported_at');
 
-    return rows.map(_toContent).toList();
+    return rows
+        .map(_toContentOrNull)
+        .whereType<ContentItem>()
+        .toList(growable: false);
   }
 
-  ContentItem _toContent(Map<String, dynamic> row) {
-    return ContentItem(
-      id: row['id'] as String,
-      kind: row['kind'] as String,
-      jlptLevel: row['jlpt_level'] as String,
-      jp: row['jp'] as String,
-      reading: (row['reading'] ?? '') as String,
-      meaningKo: row['meaning_ko'] as String,
-    );
-  }
+  ContentItem? _toContentOrNull(Map<String, dynamic> row) =>
+      _parseContentRow(row);
 }
 
 class SupabaseStudyRepository implements StudyRepository {
@@ -117,6 +115,7 @@ class SupabaseStudyRepository implements StudyRepository {
     final contentRows = await _client
         .from('import_jlpt_vocab')
         .select('id, kind, jlpt_level, jp, reading, meaning_ko')
+        .eq('is_active', true)
         .inFilter('id', contentIds);
 
     final contentById = <String, Map<String, dynamic>>{
@@ -133,16 +132,13 @@ class SupabaseStudyRepository implements StudyRepository {
       if (content == null) {
         continue;
       }
+      final parsed = _parseContentRow(content);
+      if (parsed == null) {
+        continue;
+      }
       queue.add(
         StudyCard(
-          content: ContentItem(
-            id: content['id'] as String,
-            kind: content['kind'] as String,
-            jlptLevel: content['jlpt_level'] as String,
-            jp: content['jp'] as String,
-            reading: (content['reading'] ?? '') as String,
-            meaningKo: content['meaning_ko'] as String,
-          ),
+          content: parsed,
           reps: (row['reps'] ?? 0) as int,
           intervalDays: (row['interval_days'] ?? 1) as int,
           lapses: (row['lapses'] ?? 0) as int,
@@ -205,6 +201,29 @@ class SupabaseStudyRepository implements StudyRepository {
     }
     await _client.rpc('mark_today_complete');
   }
+}
+
+ContentItem? _parseContentRow(Map<String, dynamic> row) {
+  final id = row['id'] as String?;
+  final jp = row['jp'] as String?;
+  if (id == null || id.isEmpty || jp == null || jp.isEmpty) {
+    return null;
+  }
+
+  return ContentItem(
+    id: id,
+    kind: ((row['kind'] as String?)?.trim().isNotEmpty ?? false)
+        ? (row['kind'] as String).trim()
+        : 'vocab',
+    jlptLevel: ((row['jlpt_level'] as String?)?.trim().isNotEmpty ?? false)
+        ? (row['jlpt_level'] as String).trim().toUpperCase()
+        : 'N5',
+    jp: jp,
+    reading: (row['reading'] ?? '') as String,
+    meaningKo: ((row['meaning_ko'] as String?)?.trim().isNotEmpty ?? false)
+        ? (row['meaning_ko'] as String).trim()
+        : '의미 없음',
+  );
 }
 
 class SupabaseProfileRepository implements ProfileRepository {
