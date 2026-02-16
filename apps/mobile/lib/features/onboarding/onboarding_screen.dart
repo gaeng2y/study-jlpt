@@ -17,10 +17,21 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  String _level = 'N5';
-  int _weeklyGoal = 60;
-  int _dailyMin = 3;
+  late String _level;
+  late int _weeklyGoal;
+  late int _dailyMin;
+  late String _reminderTime;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final settings = widget.state.profileSettings;
+    _level = settings.targetLevel;
+    _weeklyGoal = settings.weeklyGoalReviews;
+    _dailyMin = settings.dailyMinCards;
+    _reminderTime = settings.reminderTime;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +136,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             setState(() => _dailyMin = values.first);
                           },
                         ),
+                      const SizedBox(height: 12),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('알림 시간'),
+                        subtitle: Text(_reminderTime),
+                        trailing: const Icon(Icons.access_time),
+                        onTap: () async {
+                          final picked = await _pickReminderTime(
+                            context: context,
+                            isIos: isIos,
+                            initial: _reminderTime,
+                          );
+                          if (picked != null) {
+                            setState(() => _reminderTime = picked);
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -150,12 +178,80 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       targetLevel: _level,
       weeklyGoalReviews: _weeklyGoal,
       dailyMinCards: _dailyMin,
+      reminderTime: _reminderTime,
     );
     if (!mounted) {
       return;
     }
     setState(() => _saving = false);
   }
+}
+
+Future<String?> _pickReminderTime({
+  required BuildContext context,
+  required bool isIos,
+  required String initial,
+}) async {
+  final parts = initial.split(':');
+  final hour = parts.length == 2 ? int.tryParse(parts[0]) ?? 21 : 21;
+  final minute = parts.length == 2 ? int.tryParse(parts[1]) ?? 0 : 0;
+
+  if (isIos) {
+    DateTime selected = DateTime(2026, 1, 1, hour, minute);
+    final result = await showCupertinoModalPopup<String>(
+      context: context,
+      builder: (context) {
+        return Container(
+          color: Colors.white,
+          height: 280,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: CupertinoButton(
+                    child: const Text('완료'),
+                    onPressed: () {
+                      final hh = selected.hour.toString().padLeft(2, '0');
+                      final mm = selected.minute.toString().padLeft(2, '0');
+                      Navigator.of(context).pop('$hh:$mm');
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.time,
+                    initialDateTime: selected,
+                    use24hFormat: true,
+                    onDateTimeChanged: (value) => selected = value,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    return result;
+  }
+
+  final picked = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay(hour: hour, minute: minute),
+    builder: (context, child) {
+      return MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child ?? const SizedBox.shrink(),
+      );
+    },
+  );
+  if (picked == null) {
+    return null;
+  }
+  final hh = picked.hour.toString().padLeft(2, '0');
+  final mm = picked.minute.toString().padLeft(2, '0');
+  return '$hh:$mm';
 }
 
 class _Panel extends StatelessWidget {

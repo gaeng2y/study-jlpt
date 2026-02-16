@@ -226,6 +226,8 @@ class AppState extends ChangeNotifier {
     await _profileRepository.saveSettings(_profileSettings);
     await _notificationService
         .scheduleDailyReminder(_profileSettings.reminderTime);
+    _summary = await _getTodaySummary();
+    await _refreshWidgetCache();
     notifyListeners();
   }
 
