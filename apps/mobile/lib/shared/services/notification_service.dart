@@ -25,7 +25,7 @@ class NotificationService {
       iOS: DarwinInitializationSettings(),
     );
 
-    await _plugin.initialize(settings);
+    await _plugin.initialize(settings: settings);
     _initialized = true;
   }
 
@@ -52,11 +52,11 @@ class NotificationService {
     }
 
     await _plugin.zonedSchedule(
-      _dailyReminderId,
-      '일어톡톡 학습 시간',
-      '오늘 복습을 시작해보세요.',
-      _nextTime(hour, minute),
-      const NotificationDetails(
+      id: _dailyReminderId,
+      title: '일어톡톡 학습 시간',
+      body: '오늘 복습을 시작해보세요.',
+      scheduledDate: _nextTime(hour, minute),
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'daily_study_reminder',
           'Daily Study Reminder',
@@ -67,14 +67,12 @@ class NotificationService {
         iOS: DarwinNotificationDetails(),
       ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.wallClockTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
   Future<void> cancelDailyReminder() async {
-    await _plugin.cancel(_dailyReminderId);
+    await _plugin.cancel(id: _dailyReminderId);
   }
 
   tz.TZDateTime _nextTime(int hour, int minute) {

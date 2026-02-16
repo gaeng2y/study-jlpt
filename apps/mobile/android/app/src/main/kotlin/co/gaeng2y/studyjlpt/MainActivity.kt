@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -95,7 +96,7 @@ private class NativeStudyPlatformView(
         val jlptLevel = values["jlptLevel"] as? String ?: "N5"
 
         composeView.setContent {
-            MaterialTheme {
+            MaterialTheme(colorScheme = lightColorScheme()) {
                 NativeEmbeddedStudyCard(
                     jp = jp,
                     reading = reading,

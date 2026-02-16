@@ -28,6 +28,8 @@ class IleoTokTokApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: '일어톡톡',
       theme: AppTheme.light(platform),
+      darkTheme: AppTheme.light(platform),
+      themeMode: ThemeMode.light,
       home: const _RootPage(),
     );
   }
