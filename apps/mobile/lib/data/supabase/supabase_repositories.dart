@@ -1,0 +1,269 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/models/content_item.dart';
+import '../../core/models/profile_settings.dart';
+import '../../core/models/study_card.dart';
+import '../repositories/content_repository.dart';
+import '../repositories/profile_repository.dart';
+import '../repositories/study_repository.dart';
+
+class SupabaseContentRepository implements ContentRepository {
+  SupabaseContentRepository(this._client);
+
+  final SupabaseClient _client;
+
+  @override
+  Future<List<ContentItem>> listAll() async {
+    final rows = await _client
+        .from('import_jlpt_vocab')
+        .select('id, kind, jlpt_level, jp, reading, meaning_ko')
+        .eq('is_active', true)
+        .order('imported_at');
+
+    return rows.map(_toContent).toList();
+  }
+
+  @override
+  Future<List<ContentItem>> search(String query, {String? jlptLevel}) async {
+    var builder = _client
+        .from('import_jlpt_vocab')
+        .select('id, kind, jlpt_level, jp, reading, meaning_ko')
+        .eq('is_active', true);
+
+    if (jlptLevel != null) {
+      builder = builder.eq('jlpt_level', jlptLevel);
+    }
+
+    if (query.isNotEmpty) {
+      builder = builder.or(
+          'jp.ilike.%$query%,reading.ilike.%$query%,meaning_ko.ilike.%$query%');
+    }
+
+    final rows = await builder.order('imported_at');
+
+    return rows.map(_toContent).toList();
+  }
+
+  ContentItem _toContent(Map<String, dynamic> row) {
+    return ContentItem(
+      id: row['id'] as String,
+      kind: row['kind'] as String,
+      jlptLevel: row['jlpt_level'] as String,
+      jp: row['jp'] as String,
+      reading: (row['reading'] ?? '') as String,
+      meaningKo: row['meaning_ko'] as String,
+    );
+  }
+}
+
+class SupabaseStudyRepository implements StudyRepository {
+  SupabaseStudyRepository(this._client);
+
+  final SupabaseClient _client;
+
+  String? get _userId => _client.auth.currentUser?.id;
+
+  @override
+  Future<int> dueCount() async {
+    final userId = _userId;
+    if (userId == null) {
+      return 0;
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    final rows = await _client
+        .from('user_srs')
+        .select('content_id')
+        .eq('user_id', userId)
+        .lte('due_at', now);
+
+    return rows.length;
+  }
+
+  @override
+  Future<List<StudyCard>> dueQueue({required int limit}) async {
+    final userId = _userId;
+    if (userId == null) {
+      return const [];
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    final rows = await _client
+        .from('user_srs')
+        .select('content_id, interval_days, reps, lapses')
+        .eq('user_id', userId)
+        .lte('due_at', now)
+        .order('due_at')
+        .limit(limit);
+
+    if (rows.isEmpty) {
+      return const [];
+    }
+
+    final contentIds = rows
+        .map((row) => row['content_id'] as String?)
+        .whereType<String>()
+        .toList();
+    if (contentIds.isEmpty) {
+      return const [];
+    }
+
+    final contentRows = await _client
+        .from('import_jlpt_vocab')
+        .select('id, kind, jlpt_level, jp, reading, meaning_ko')
+        .inFilter('id', contentIds);
+
+    final contentById = <String, Map<String, dynamic>>{
+      for (final row in contentRows) row['id'] as String: row,
+    };
+
+    final queue = <StudyCard>[];
+    for (final row in rows) {
+      final contentId = row['content_id'] as String?;
+      if (contentId == null) {
+        continue;
+      }
+      final content = contentById[contentId];
+      if (content == null) {
+        continue;
+      }
+      queue.add(
+        StudyCard(
+          content: ContentItem(
+            id: content['id'] as String,
+            kind: content['kind'] as String,
+            jlptLevel: content['jlpt_level'] as String,
+            jp: content['jp'] as String,
+            reading: (content['reading'] ?? '') as String,
+            meaningKo: content['meaning_ko'] as String,
+          ),
+          reps: (row['reps'] ?? 0) as int,
+          intervalDays: (row['interval_days'] ?? 1) as int,
+          lapses: (row['lapses'] ?? 0) as int,
+        ),
+      );
+    }
+
+    return queue;
+  }
+
+  @override
+  Future<void> gradeCard({required StudyCard card, required bool good}) async {
+    await _client.rpc('grade_card', params: {
+      'p_content_id': card.content.id,
+      'p_good': good,
+      'p_studied_minutes': 1,
+    });
+  }
+}
+
+class SupabaseProfileRepository implements ProfileRepository {
+  SupabaseProfileRepository(this._client);
+
+  final SupabaseClient _client;
+
+  String? get _userId => _client.auth.currentUser?.id;
+
+  @override
+  Future<int> currentStreak() async {
+    final userId = _userId;
+    if (userId == null) {
+      return 0;
+    }
+    final row = await _client
+        .from('profiles')
+        .select('current_streak')
+        .eq('id', userId)
+        .single();
+
+    return (row['current_streak'] ?? 0) as int;
+  }
+
+  @override
+  Future<int> freezeLeft() async {
+    final userId = _userId;
+    if (userId == null) {
+      return 0;
+    }
+    final row = await _client
+        .from('profiles')
+        .select('freeze_left')
+        .eq('id', userId)
+        .single();
+
+    return (row['freeze_left'] ?? 0) as int;
+  }
+
+  @override
+  Future<ProfileSettings> getSettings() async {
+    final userId = _userId;
+    if (userId == null) {
+      return ProfileSettings.defaults;
+    }
+
+    late final Map<String, dynamic> row;
+    try {
+      row = await _client
+          .from('profiles')
+          .select(
+              'target_level, weekly_goal_reviews, daily_min_cards, onboarding_completed, exam_date')
+          .eq('id', userId)
+          .single();
+    } on PostgrestException catch (e) {
+      // Backward compatibility for projects that have not applied
+      // the onboarding_completed migration yet.
+      if (!_isMissingOnboardingColumn(e)) {
+        rethrow;
+      }
+      row = await _client
+          .from('profiles')
+          .select(
+              'target_level, weekly_goal_reviews, daily_min_cards, exam_date')
+          .eq('id', userId)
+          .single();
+    }
+
+    return ProfileSettings(
+      targetLevel: (row['target_level'] ?? 'N5') as String,
+      weeklyGoalReviews: (row['weekly_goal_reviews'] ?? 60) as int,
+      dailyMinCards: (row['daily_min_cards'] ?? 3) as int,
+      onboardingCompleted: (row['onboarding_completed'] ?? false) as bool,
+      examDate: row['exam_date'] == null
+          ? null
+          : DateTime.tryParse(row['exam_date'] as String),
+    );
+  }
+
+  @override
+  Future<void> saveSettings(ProfileSettings settings) async {
+    final userId = _userId;
+    if (userId == null) {
+      return;
+    }
+
+    try {
+      await _client.from('profiles').update({
+        'target_level': settings.targetLevel,
+        'weekly_goal_reviews': settings.weeklyGoalReviews,
+        'daily_min_cards': settings.dailyMinCards,
+        'onboarding_completed': settings.onboardingCompleted,
+        'exam_date': settings.examDate?.toIso8601String().split('T').first,
+      }).eq('id', userId);
+    } on PostgrestException catch (e) {
+      if (!_isMissingOnboardingColumn(e)) {
+        rethrow;
+      }
+      await _client.from('profiles').update({
+        'target_level': settings.targetLevel,
+        'weekly_goal_reviews': settings.weeklyGoalReviews,
+        'daily_min_cards': settings.dailyMinCards,
+        'exam_date': settings.examDate?.toIso8601String().split('T').first,
+      }).eq('id', userId);
+    }
+  }
+
+  bool _isMissingOnboardingColumn(PostgrestException e) {
+    final missingColumn = e.message.contains('onboarding_completed');
+    return missingColumn && (e.code == '42703' || e.code == 'PGRST204');
+  }
+}
