@@ -5,6 +5,7 @@ class TelemetryService {
   TelemetryService._();
 
   static final TelemetryService instance = TelemetryService._();
+  static const int _eventVersion = 1;
 
   SupabaseClient? _client;
 
@@ -16,8 +17,11 @@ class TelemetryService {
     String name,
     Map<String, dynamic> properties,
   ) async {
+    final payload = Map<String, dynamic>.from(properties);
+    payload.putIfAbsent('event_version', () => _eventVersion);
+
     if (kDebugMode) {
-      debugPrint('[analytics] $name $properties');
+      debugPrint('[analytics] $name $payload');
     }
 
     final client = _client;
@@ -29,7 +33,7 @@ class TelemetryService {
       await client.from('analytics_events').insert({
         'user_id': client.auth.currentUser?.id,
         'event_name': name,
-        'properties': properties,
+        'properties': payload,
       });
     } catch (_) {
       // Ignore telemetry transport errors in app runtime.

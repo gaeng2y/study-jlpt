@@ -13,6 +13,7 @@
 ## 공통 규칙
 - `event_name`: `snake_case`
 - `properties`: 값이 없더라도 객체로 저장
+- `properties.event_version`: 정수, 현재 `1` (클라이언트에서 자동 주입)
 - 개인식별정보(이메일/실명) 미저장
 - 검색어 원문은 저장하지 않고 길이(`query_length`)만 저장
 
