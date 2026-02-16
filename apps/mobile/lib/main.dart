@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/config/supabase_bootstrap.dart';
+import 'shared/services/telemetry_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +15,12 @@ Future<void> main() async {
       debugPrint('Recoverable OAuth error: $exception');
       return;
     }
+    TelemetryService.instance.recordError(
+      exception,
+      details.stack ?? StackTrace.current,
+      fatal: false,
+      context: 'flutter_error',
+    );
     FlutterError.presentError(details);
   };
   ui.PlatformDispatcher.instance.onError = (error, stack) {
@@ -21,6 +28,12 @@ Future<void> main() async {
       debugPrint('Recoverable OAuth async error: $error');
       return true;
     }
+    TelemetryService.instance.recordError(
+      error,
+      stack,
+      fatal: true,
+      context: 'platform_dispatcher',
+    );
     return false;
   };
   SystemChrome.setSystemUIOverlayStyle(

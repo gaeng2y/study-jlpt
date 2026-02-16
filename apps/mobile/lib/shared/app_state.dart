@@ -19,6 +19,7 @@ import '../domain/usecases/get_today_summary_usecase.dart';
 import '../domain/usecases/grade_card_usecase.dart';
 import '../features/widgets_bridge/widget_cache_service.dart';
 import 'services/notification_service.dart';
+import 'services/telemetry_service.dart';
 
 enum PlanMode { min3, min10, min20 }
 
@@ -62,6 +63,7 @@ class AppState extends ChangeNotifier {
   ProfileSettings _profileSettings = ProfileSettings.defaults;
   final WidgetCacheService _widgetCacheService = WidgetCacheService();
   final NotificationService _notificationService = NotificationService.instance;
+  final TelemetryService _telemetry = TelemetryService.instance;
   StreamSubscription<AuthState>? _authSub;
   Timer? _oauthTimeoutTimer;
   bool _oauthInProgress = false;
@@ -103,6 +105,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     _bindAuthState();
+    _telemetry.initialize(_supabaseClientOrNull());
     _contentItems = await _contentRepository.listAll();
     _profileSettings = await _profileRepository.getSettings();
     await _notificationService.initialize();
@@ -114,6 +117,10 @@ class AppState extends ChangeNotifier {
       _todayWord = _contentItems[Random().nextInt(_contentItems.length)];
     }
     await _refreshWidgetCache();
+    await _telemetry.logEvent('app_initialized', {
+      'source': dataSource,
+      'items': _contentItems.length,
+    });
 
     _loading = false;
     notifyListeners();
@@ -165,6 +172,11 @@ class AppState extends ChangeNotifier {
     required bool good,
   }) async {
     await _gradeCard(card: card, good: good);
+    await _telemetry.logEvent('card_answered', {
+      'kind': card.content.kind,
+      'grade': good ? 'good' : 'again',
+      'duration_ms': 0,
+    });
 
     _sessionDone += 1;
     _summary = await _getTodaySummary();
@@ -176,6 +188,10 @@ class AppState extends ChangeNotifier {
     await _studyRepository.completeTodaySession();
     _summary = await _getTodaySummary();
     await _refreshWidgetCache();
+    await _telemetry.logEvent('study_completed', {
+      'cards': _sessionDone,
+      'minutes': _summary.estMinutes,
+    });
     notifyListeners();
   }
 
@@ -206,6 +222,11 @@ class AppState extends ChangeNotifier {
       reminderTime: reminderTime ?? _profileSettings.reminderTime,
       markOnboardingCompleted: true,
     );
+    await _telemetry.logEvent('onboarding_completed', {
+      'target_level': targetLevel,
+      'weekly_goal_reviews': weeklyGoalReviews,
+      'daily_min_cards': dailyMinCards,
+    });
   }
 
   Future<void> updateLearningSettings({
@@ -296,6 +317,18 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> trackDailyPlanStarted(PlanMode mode) async {
+    await _telemetry.logEvent('daily_plan_started', {
+      'mode': mode.name,
+    });
+  }
+
+  Future<void> trackWidgetOpened(String type) async {
+    await _telemetry.logEvent('widget_opened', {
+      'type': type,
+    });
+  }
+
   static ContentRepository _buildContentRepository() {
     if (!SupabaseBootstrap.isConfigured) {
       return MockContentRepository();
@@ -348,6 +381,9 @@ class AppState extends ChangeNotifier {
         _oauthTimeoutTimer?.cancel();
         _setOAuthInProgress(false);
         _setAuthError(null);
+        await _telemetry.logEvent('login_success', {
+          'provider': state.session?.user.appMetadata['provider'] ?? 'oauth',
+        });
       }
       if (state.event == AuthChangeEvent.signedOut) {
         _oauthTimeoutTimer?.cancel();

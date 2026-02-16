@@ -94,6 +94,7 @@ class _RootPageState extends State<_RootPage> {
     }
 
     if (host == 'review' || path == '/review') {
+      _state.trackWidgetOpened('review');
       if (mounted) {
         setState(() => _index = 2);
       }
@@ -101,6 +102,7 @@ class _RootPageState extends State<_RootPage> {
     }
 
     if (host == 'content' || path.startsWith('/content')) {
+      _state.trackWidgetOpened('daily_word');
       if (mounted) {
         setState(() => _index = 3);
       }

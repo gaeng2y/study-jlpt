@@ -111,7 +111,11 @@ class TodayScreen extends StatelessWidget {
     );
   }
 
-  void _start(BuildContext context, PlanMode mode) {
+  Future<void> _start(BuildContext context, PlanMode mode) async {
+    await state.trackDailyPlanStarted(mode);
+    if (!context.mounted) {
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => StudySessionScreen(state: state, initialMode: mode),
