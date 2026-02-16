@@ -17,6 +17,9 @@ Flutter(iOS/Android) 클라이언트와 Supabase(Postgres/Auth/RLS) 기반 학�
 - 네이티브 임베드 학습 카드
   - iOS: SwiftUI PlatformView
   - Android: Compose PlatformView
+- 홈 위젯 2종
+  - DueCountWidget(오늘 복습 수)
+  - DailyWordWidget(오늘의 단어)
 - 콘텐츠 조회/검색
 - 프로필 설정 변경
 
@@ -50,6 +53,10 @@ graph TD
   C --> D[(Postgres)]
   A --> E[iOS Native View\nSwiftUI PlatformView]
   A --> F[Android Native View\nCompose PlatformView]
+  A --> G[iOS WidgetKit Extension]
+  A --> H[Android AppWidget]
+  G <-->|App Group JSON Cache| A
+  H <-->|home_widget SharedPrefs| A
   E <-->|MethodChannel\nstudyjlpt/native_study| A
   F <-->|MethodChannel\nstudyjlpt/native_study| A
 ```
@@ -159,6 +166,24 @@ python3 scripts/convert_jlpt_csv_to_korean.py \
 - Bundle/Application ID: `co.gaeng2y.studyjlpt`
 - OAuth 딥링크 스킴: `studyjlpt://login-callback/`
 - 네이티브 학습 채널: `studyjlpt/native_study`
+- 위젯 App Group: `group.co.gaeng2y.studyjlpt`
+- 위젯 업데이트 키:
+  - `today_summary_json`
+  - `today_word_json`
+
+## 위젯/딥링크 동작
+- iOS:
+  - WidgetKit 타깃: `StudyWidgets`
+  - 위젯 탭 딥링크:
+    - `studyjlpt://review`
+    - `studyjlpt://content/today-word`
+- Android:
+  - AppWidget Provider:
+    - `DueCountWidgetProvider`
+    - `DailyWordWidgetProvider`
+  - 위젯 탭 딥링크 host:
+    - `review`
+    - `content`
 
 ## 참고
 - 이 저장소는 MVP 개발 중이라, 일부 문서/스크립트는 계속 갱신될 수 있습니다.

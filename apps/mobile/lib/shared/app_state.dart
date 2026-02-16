@@ -311,7 +311,10 @@ class AppState extends ChangeNotifier {
 
   Future<void> _refreshWidgetCache() async {
     try {
-      await _widgetCacheService.saveTodaySummary(_summary);
+      await _widgetCacheService.saveTodaySummary(
+        _summary,
+        dailyWord: _todayWord,
+      );
     } catch (_) {
       // Widget extension can be unavailable during local preview/dev.
     }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
+import 'dart:async';
+import 'package:app_links/app_links.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_screen.dart';
@@ -42,11 +44,54 @@ class _RootPageState extends State<_RootPage> {
   final AppState _state = AppState();
   int _index = 0;
   late final Future<void> _bootstrap;
+  StreamSubscription<Uri>? _deepLinkSub;
+  final AppLinks _appLinks = AppLinks();
 
   @override
   void initState() {
     super.initState();
     _bootstrap = _state.initialize();
+    _bindDeepLinks();
+  }
+
+  Future<void> _bindDeepLinks() async {
+    try {
+      final initial = await _appLinks.getInitialLink();
+      if (initial != null) {
+        _handleDeepLink(initial);
+      }
+      _deepLinkSub = _appLinks.uriLinkStream.listen(
+        _handleDeepLink,
+        onError: (_) {},
+      );
+    } catch (_) {}
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (uri.scheme != 'studyjlpt') {
+      return;
+    }
+
+    final host = uri.host.toLowerCase();
+    final path = uri.path.toLowerCase();
+
+    if (host == 'login-callback') {
+      return;
+    }
+
+    if (host == 'review' || path == '/review') {
+      if (mounted) {
+        setState(() => _index = 1);
+      }
+      return;
+    }
+
+    if (host == 'content' || path.startsWith('/content')) {
+      if (mounted) {
+        setState(() => _index = 2);
+      }
+      return;
+    }
   }
 
   @override
@@ -91,6 +136,13 @@ class _RootPageState extends State<_RootPage> {
         );
       },
     );
+  }
+
+  @override
+  void dispose() {
+    _deepLinkSub?.cancel();
+    _state.dispose();
+    super.dispose();
   }
 }
 
