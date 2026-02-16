@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 import '../../core/models/study_card.dart';
 import '../../shared/app_state.dart';
@@ -31,13 +32,16 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   bool _loading = true;
   bool _submitting = false;
   bool _nativeUnsupported = false;
+  bool _speaking = false;
   String? _lastGradeLabel;
   Timer? _gradeLabelTimer;
+  final FlutterTts _tts = FlutterTts();
 
   @override
   void initState() {
     super.initState();
     _nativeStudyChannel.setMethodCallHandler(_handleNativeStudyEvent);
+    _configureTts();
     _loadQueue();
   }
 
@@ -105,6 +109,14 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF2F5A78),
                       ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Center(
+                child: TextButton.icon(
+                  onPressed: _speaking ? null : () => _speakCard(card),
+                  icon: const Icon(Icons.volume_up_rounded),
+                  label: Text(_speaking ? '재생 중...' : '듣기'),
                 ),
               ),
               const SizedBox(height: 20),
@@ -194,6 +206,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
     });
 
     await widget.state.gradeCard(card: card, good: good);
+    await _tts.stop();
 
     if (!mounted) {
       return;
@@ -213,6 +226,66 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
         _lastGradeLabel = null;
       });
     });
+  }
+
+  Future<void> _configureTts() async {
+    if (Platform.isIOS) {
+      await _tts.setSharedInstance(true);
+      await _tts.autoStopSharedSession(false);
+      await _tts.setIosAudioCategory(
+        IosTextToSpeechAudioCategory.playback,
+        <IosTextToSpeechAudioCategoryOptions>[
+          IosTextToSpeechAudioCategoryOptions.mixWithOthers,
+        ],
+        IosTextToSpeechAudioMode.defaultMode,
+      );
+    }
+    await _tts.setLanguage('ja-JP');
+    await _tts.setPitch(1.0);
+    await _tts.setSpeechRate(0.42);
+    _tts.setStartHandler(() {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _speaking = true;
+      });
+    });
+    _tts.setCompletionHandler(() {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _speaking = false;
+      });
+    });
+    _tts.setCancelHandler(() {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _speaking = false;
+      });
+    });
+    _tts.setErrorHandler((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _speaking = false;
+      });
+    });
+  }
+
+  Future<void> _speakCard(StudyCard card) async {
+    final text = card.content.reading.trim().isNotEmpty
+        ? card.content.reading.trim()
+        : card.content.jp.trim();
+    if (text.isEmpty) {
+      return;
+    }
+    await _tts.stop();
+    await _tts.speak(text);
   }
 
   Widget _buildEmbeddedNativeCard(StudyCard card) {
@@ -279,6 +352,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   void dispose() {
     _gradeLabelTimer?.cancel();
     _nativeStudyChannel.setMethodCallHandler(null);
+    _tts.stop();
     super.dispose();
   }
 }
