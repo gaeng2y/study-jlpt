@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 
 class AppTheme {
   static ThemeData light(TargetPlatform platform) {
@@ -26,6 +28,7 @@ class AppTheme {
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
@@ -62,6 +65,10 @@ class AppTheme {
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: Color(0xFF1E2A3A),
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+      ),
+      cupertinoOverrideTheme: const CupertinoThemeData(
+        brightness: Brightness.light,
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white.withOpacity(0.65),

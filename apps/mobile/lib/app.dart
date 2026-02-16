@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:app_links/app_links.dart';
 
@@ -31,6 +32,16 @@ class IleoTokTokApp extends StatelessWidget {
       theme: AppTheme.light(platform),
       darkTheme: AppTheme.light(platform),
       themeMode: ThemeMode.light,
+      builder: (context, child) {
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const _RootPage(),
     );
   }
