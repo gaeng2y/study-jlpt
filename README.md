@@ -151,6 +151,7 @@ flutter run -d "iPhone 17 Pro"
 1. `supabase/migrations/20260215170000_add_onboarding_completed.sql`
 2. `supabase/migrations/20260215234500_use_import_vocab_directly.sql`
 3. `supabase/migrations/20260216162000_server_aggregation_sync.sql`
+4. `supabase/migrations/20260216173000_fix_today_summary_ambiguous_cards_done.sql`
 
 실행 위치:
 - Supabase Dashboard -> SQL Editor
