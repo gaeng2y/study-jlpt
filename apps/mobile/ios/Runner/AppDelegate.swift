@@ -63,6 +63,7 @@ final class NativeStudyPlatformViewFactory: NSObject, FlutterPlatformViewFactory
 
 final class NativeStudyPlatformView: NSObject, FlutterPlatformView {
   private let container = UIView()
+  private let host: UIHostingController<NativeEmbeddedStudyCardView>
 
   init(
     frame: CGRect,
@@ -70,8 +71,6 @@ final class NativeStudyPlatformView: NSObject, FlutterPlatformView {
     values: [String: Any],
     eventChannel: FlutterMethodChannel
   ) {
-    super.init()
-
     let contentId = (values["contentId"] as? String) ?? ""
     let jp = (values["jp"] as? String) ?? ""
     let reading = (values["reading"] as? String) ?? ""
@@ -99,7 +98,9 @@ final class NativeStudyPlatformView: NSObject, FlutterPlatformView {
       }
     )
 
-    let host = UIHostingController(rootView: root)
+    host = UIHostingController(rootView: root)
+    super.init()
+
     host.view.backgroundColor = .clear
     host.view.translatesAutoresizingMaskIntoConstraints = false
 

@@ -104,23 +104,36 @@ class AppState extends ChangeNotifier {
     _loading = true;
     notifyListeners();
 
-    _bindAuthState();
-    _telemetry.initialize(_supabaseClientOrNull());
-    _contentItems = await _contentRepository.listAll();
-    _profileSettings = await _profileRepository.getSettings();
-    await _notificationService.initialize();
-    await _notificationService.requestPermissions();
-    await _notificationService
-        .scheduleDailyReminder(_profileSettings.reminderTime);
-    _summary = await _getTodaySummary();
-    if (_contentItems.isNotEmpty) {
-      _todayWord = _contentItems[Random().nextInt(_contentItems.length)];
+    try {
+      _bindAuthState();
+      _telemetry.initialize(_supabaseClientOrNull());
+      _contentItems = await _contentRepository.listAll();
+      _profileSettings = await _profileRepository.getSettings();
+      await _notificationService.initialize();
+      await _notificationService.requestPermissions();
+      await _notificationService
+          .scheduleDailyReminder(_profileSettings.reminderTime);
+      _summary = await _getTodaySummary();
+      if (_contentItems.isNotEmpty) {
+        _todayWord = _contentItems[Random().nextInt(_contentItems.length)];
+      }
+      await _refreshWidgetCache();
+      await _telemetry.logEvent('app_initialized', {
+        'source': dataSource,
+        'items': _contentItems.length,
+      });
+    } catch (error, stack) {
+      await _telemetry.recordError(
+        error,
+        stack,
+        fatal: false,
+        context: 'app_state_initialize',
+      );
+      _authErrorMessage = '초기화 중 오류가 발생했습니다. 다시 시도해 주세요.';
+      if (_contentItems.isEmpty) {
+        _contentItems = await MockContentRepository().listAll();
+      }
     }
-    await _refreshWidgetCache();
-    await _telemetry.logEvent('app_initialized', {
-      'source': dataSource,
-      'items': _contentItems.length,
-    });
 
     _loading = false;
     notifyListeners();
@@ -191,12 +204,23 @@ class AppState extends ChangeNotifier {
     await _telemetry.logEvent('study_completed', {
       'cards': _sessionDone,
       'minutes': _summary.estMinutes,
+      'due_count': _summary.dueCount,
+      'new_count': _summary.newCount,
+      'streak': _summary.streak,
     });
     notifyListeners();
   }
 
   Future<void> searchContent(String query) async {
     _contentItems = await _contentRepository.search(query);
+    final trimmed = query.trim();
+    if (trimmed.length >= 2) {
+      await _telemetry.logEvent('content_search', {
+        'query_length': trimmed.length,
+        'jlpt_level': 'all',
+        'result_count': _contentItems.length,
+      });
+    }
     notifyListeners();
   }
 
@@ -206,6 +230,14 @@ class AppState extends ChangeNotifier {
   }) async {
     _contentItems =
         await _contentRepository.search(query, jlptLevel: jlptLevel);
+    final trimmed = query.trim();
+    if (trimmed.length >= 2 || jlptLevel != null) {
+      await _telemetry.logEvent('content_search', {
+        'query_length': trimmed.length,
+        'jlpt_level': jlptLevel ?? 'all',
+        'result_count': _contentItems.length,
+      });
+    }
     notifyListeners();
   }
 
@@ -236,6 +268,7 @@ class AppState extends ChangeNotifier {
     String? reminderTime,
     bool markOnboardingCompleted = false,
   }) async {
+    final before = _profileSettings;
     _profileSettings = _profileSettings.copyWith(
       targetLevel: targetLevel,
       weeklyGoalReviews: weeklyGoalReviews,
@@ -249,6 +282,17 @@ class AppState extends ChangeNotifier {
         .scheduleDailyReminder(_profileSettings.reminderTime);
     _summary = await _getTodaySummary();
     await _refreshWidgetCache();
+    await _telemetry.logEvent('settings_updated', {
+      'target_level_before': before.targetLevel,
+      'target_level_after': _profileSettings.targetLevel,
+      'weekly_goal_before': before.weeklyGoalReviews,
+      'weekly_goal_after': _profileSettings.weeklyGoalReviews,
+      'daily_min_before': before.dailyMinCards,
+      'daily_min_after': _profileSettings.dailyMinCards,
+      'reminder_before': before.reminderTime,
+      'reminder_after': _profileSettings.reminderTime,
+      'onboarding_completed': _profileSettings.onboardingCompleted,
+    });
     notifyListeners();
   }
 
@@ -301,6 +345,9 @@ class AppState extends ChangeNotifier {
     if (client == null) {
       return;
     }
+    await _telemetry.logEvent('logout', {
+      'source': 'profile',
+    });
     await client.auth.signOut();
     await _notificationService.cancelDailyReminder();
     _profileSettings = ProfileSettings.defaults;
@@ -326,6 +373,75 @@ class AppState extends ChangeNotifier {
   Future<void> trackWidgetOpened(String type) async {
     await _telemetry.logEvent('widget_opened', {
       'type': type,
+    });
+  }
+
+  Future<void> trackNavigationChanged(int index) async {
+    final tab = switch (index) {
+      0 => 'today',
+      1 => 'practice',
+      2 => 'study',
+      3 => 'content',
+      4 => 'profile',
+      _ => 'unknown',
+    };
+    await _telemetry.logEvent('tab_opened', {
+      'tab': tab,
+      'index': index,
+    });
+  }
+
+  Future<void> trackContentOpened(ContentItem item) async {
+    await _telemetry.logEvent('content_opened', {
+      'content_id': item.id,
+      'kind': item.kind,
+      'jlpt_level': item.jlptLevel,
+    });
+  }
+
+  Future<void> trackStudySessionStarted({
+    required PlanMode mode,
+    required int queueLength,
+    required String sessionId,
+  }) async {
+    await _telemetry.logEvent('study_session_started', {
+      'mode': mode.name,
+      'queue_length': queueLength,
+      'session_id': sessionId,
+    });
+  }
+
+  Future<void> trackStudySessionFinished({
+    required PlanMode mode,
+    required int queueLength,
+    required int goodCount,
+    required int againCount,
+    required int elapsedSeconds,
+    required String sessionId,
+  }) async {
+    await _telemetry.logEvent('study_session_finished', {
+      'mode': mode.name,
+      'queue_length': queueLength,
+      'good_count': goodCount,
+      'again_count': againCount,
+      'elapsed_seconds': elapsedSeconds,
+      'session_id': sessionId,
+    });
+  }
+
+  Future<void> trackStudySessionAbandoned({
+    required PlanMode mode,
+    required int queueLength,
+    required int answeredCount,
+    required int elapsedSeconds,
+    required String sessionId,
+  }) async {
+    await _telemetry.logEvent('study_session_abandoned', {
+      'mode': mode.name,
+      'queue_length': queueLength,
+      'answered_count': answeredCount,
+      'elapsed_seconds': elapsedSeconds,
+      'session_id': sessionId,
     });
   }
 
@@ -377,22 +493,31 @@ class AppState extends ChangeNotifier {
     }
 
     _authSub = client.auth.onAuthStateChange.listen((state) async {
-      if (state.event == AuthChangeEvent.signedIn) {
-        _oauthTimeoutTimer?.cancel();
-        _setOAuthInProgress(false);
-        _setAuthError(null);
-        await _telemetry.logEvent('login_success', {
-          'provider': state.session?.user.appMetadata['provider'] ?? 'oauth',
-        });
-      }
-      if (state.event == AuthChangeEvent.signedOut) {
-        _oauthTimeoutTimer?.cancel();
-        _setOAuthInProgress(false);
-      }
+      try {
+        if (state.event == AuthChangeEvent.signedIn) {
+          _oauthTimeoutTimer?.cancel();
+          _setOAuthInProgress(false);
+          _setAuthError(null);
+          await _telemetry.logEvent('login_success', {
+            'provider': state.session?.user.appMetadata['provider'] ?? 'oauth',
+          });
+        }
+        if (state.event == AuthChangeEvent.signedOut) {
+          _oauthTimeoutTimer?.cancel();
+          _setOAuthInProgress(false);
+        }
 
-      _profileSettings = await _profileRepository.getSettings();
-      _summary = await _getTodaySummary();
-      notifyListeners();
+        _profileSettings = await _profileRepository.getSettings();
+        _summary = await _getTodaySummary();
+        notifyListeners();
+      } catch (error, stack) {
+        await _telemetry.recordError(
+          error,
+          stack,
+          fatal: false,
+          context: 'auth_state_listener',
+        );
+      }
     });
   }
 

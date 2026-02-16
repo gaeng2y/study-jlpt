@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/models/content_item.dart';
@@ -92,6 +94,7 @@ class _ContentScreenState extends State<ContentScreen> {
   }
 
   void _open(ContentItem item) {
+    unawaited(widget.state.trackContentOpened(item));
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ContentDetailScreen(item: item),

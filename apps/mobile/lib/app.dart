@@ -146,7 +146,10 @@ class _RootPageState extends State<_RootPage> {
                   ? null
                   : _BottomNav(
                       index: _index,
-                      onChanged: (value) => setState(() => _index = value),
+                      onChanged: (value) {
+                        setState(() => _index = value);
+                        unawaited(_state.trackNavigationChanged(value));
+                      },
                     ),
             );
           },

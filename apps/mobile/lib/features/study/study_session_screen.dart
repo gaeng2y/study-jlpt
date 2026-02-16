@@ -37,13 +37,16 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   Timer? _gradeLabelTimer;
   final FlutterTts _tts = FlutterTts();
   late final DateTime _sessionStartedAt;
+  late final String _sessionId;
   int _goodCount = 0;
   int _againCount = 0;
+  bool _sessionTerminalTracked = false;
 
   @override
   void initState() {
     super.initState();
     _sessionStartedAt = DateTime.now();
+    _sessionId = _sessionStartedAt.microsecondsSinceEpoch.toString();
     _nativeStudyChannel.setMethodCallHandler(_handleNativeStudyEvent);
     _configureTts();
     _loadQueue();
@@ -83,8 +86,8 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   }
 
   Widget _nativeOnlyView(BuildContext context) {
-    final progress = '${_index + 1} / ${_queue.length}';
     final card = _queue[_index];
+    final progress = '${_index + 1} / ${_queue.length}';
 
     return Center(
       child: ConstrainedBox(
@@ -92,43 +95,103 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '$progress 남음',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-              const SizedBox(height: 6),
-              AnimatedOpacity(
-                duration: const Duration(milliseconds: 140),
-                opacity: _lastGradeLabel == null ? 0 : 1,
-                child: Text(
-                  _lastGradeLabel ?? '',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF2F5A78),
+              Expanded(
+                child: Center(
+                  child: SizedBox(
+                    height: 500,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(22),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          _buildEmbeddedNativeCard(card),
+                          Positioned(
+                            top: 12,
+                            left: 12,
+                            right: 12,
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.28),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '$progress 남음',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                const Spacer(),
+                                Material(
+                                  color: Colors.black.withValues(alpha: 0.28),
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(999),
+                                    onTap: _speaking
+                                        ? null
+                                        : () => _speakCard(card),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.volume_up_rounded,
+                                            size: 18,
+                                            color: Colors.white,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            _speaking ? '재생 중' : '듣기',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 14,
+                            left: 0,
+                            right: 0,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 140),
+                              opacity: _lastGradeLabel == null ? 0 : 1,
+                              child: Text(
+                                _lastGradeLabel ?? '',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Center(
-                child: TextButton.icon(
-                  onPressed: _speaking ? null : () => _speakCard(card),
-                  icon: const Icon(Icons.volume_up_rounded),
-                  label: Text(_speaking ? '재생 중...' : '듣기'),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: 460,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(22),
-                  child: _buildEmbeddedNativeCard(card),
+                    ),
+                  ),
                 ),
               ),
               if (_nativeUnsupported) ...[
@@ -174,6 +237,19 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
           const SizedBox(height: 18),
           FilledButton(
             onPressed: () async {
+              final elapsedSeconds =
+                  DateTime.now().difference(_sessionStartedAt).inSeconds;
+              if (!_sessionTerminalTracked) {
+                _sessionTerminalTracked = true;
+                await widget.state.trackStudySessionFinished(
+                  mode: widget.initialMode,
+                  queueLength: _queue.length,
+                  goodCount: _goodCount,
+                  againCount: _againCount,
+                  elapsedSeconds: elapsedSeconds,
+                  sessionId: _sessionId,
+                );
+              }
               await widget.state.completeSession();
               if (!mounted) {
                 return;
@@ -206,6 +282,11 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
       _queue = queue;
       _loading = false;
     });
+    await widget.state.trackStudySessionStarted(
+      mode: widget.initialMode,
+      queueLength: queue.length,
+      sessionId: _sessionId,
+    );
   }
 
   Future<void> _applyGrade({required bool good}) async {
@@ -368,6 +449,20 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
 
   @override
   void dispose() {
+    if (!_sessionTerminalTracked && !_loading && _queue.isNotEmpty) {
+      final answeredCount = _index.clamp(0, _queue.length).toInt();
+      final elapsedSeconds =
+          DateTime.now().difference(_sessionStartedAt).inSeconds;
+      unawaited(
+        widget.state.trackStudySessionAbandoned(
+          mode: widget.initialMode,
+          queueLength: _queue.length,
+          answeredCount: answeredCount,
+          elapsedSeconds: elapsedSeconds,
+          sessionId: _sessionId,
+        ),
+      );
+    }
     _gradeLabelTimer?.cancel();
     _nativeStudyChannel.setMethodCallHandler(null);
     _tts.stop();
