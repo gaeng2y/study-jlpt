@@ -24,54 +24,61 @@ class _KanaWritingScreenState extends State<KanaWritingScreen> {
   @override
   void initState() {
     super.initState();
-    final source = widget.state.contentItems
-        .where((item) => item.kind == 'kana')
-        .toList(growable: true);
+    final source =
+        widget.state.contentItems.where((item) => item.kind == 'kana').toList(
+              growable: true,
+            );
 
     if (source.isEmpty) {
       _kanaItems = const [
         ContentItem(
-            id: 'h_a',
-            kind: 'kana',
-            jlptLevel: 'N5',
-            jp: 'あ',
-            reading: 'a',
-            meaningKo: '히라가나 a'),
+          id: 'h_a',
+          kind: 'kana',
+          jlptLevel: 'N5',
+          jp: 'あ',
+          reading: 'a',
+          meaningKo: '히라가나 a',
+        ),
         ContentItem(
-            id: 'h_i',
-            kind: 'kana',
-            jlptLevel: 'N5',
-            jp: 'い',
-            reading: 'i',
-            meaningKo: '히라가나 i'),
+          id: 'h_i',
+          kind: 'kana',
+          jlptLevel: 'N5',
+          jp: 'い',
+          reading: 'i',
+          meaningKo: '히라가나 i',
+        ),
         ContentItem(
-            id: 'h_u',
-            kind: 'kana',
-            jlptLevel: 'N5',
-            jp: 'う',
-            reading: 'u',
-            meaningKo: '히라가나 u'),
+          id: 'h_u',
+          kind: 'kana',
+          jlptLevel: 'N5',
+          jp: 'う',
+          reading: 'u',
+          meaningKo: '히라가나 u',
+        ),
         ContentItem(
-            id: 'k_a',
-            kind: 'kana',
-            jlptLevel: 'N5',
-            jp: 'ア',
-            reading: 'a',
-            meaningKo: '가타카나 a'),
+          id: 'k_a',
+          kind: 'kana',
+          jlptLevel: 'N5',
+          jp: 'ア',
+          reading: 'a',
+          meaningKo: '가타카나 a',
+        ),
         ContentItem(
-            id: 'k_i',
-            kind: 'kana',
-            jlptLevel: 'N5',
-            jp: 'イ',
-            reading: 'i',
-            meaningKo: '가타카나 i'),
+          id: 'k_i',
+          kind: 'kana',
+          jlptLevel: 'N5',
+          jp: 'イ',
+          reading: 'i',
+          meaningKo: '가타카나 i',
+        ),
         ContentItem(
-            id: 'k_u',
-            kind: 'kana',
-            jlptLevel: 'N5',
-            jp: 'ウ',
-            reading: 'u',
-            meaningKo: '가타카나 u'),
+          id: 'k_u',
+          kind: 'kana',
+          jlptLevel: 'N5',
+          jp: 'ウ',
+          reading: 'u',
+          meaningKo: '가타카나 u',
+        ),
       ];
     } else {
       source.shuffle(_random);
@@ -82,6 +89,7 @@ class _KanaWritingScreenState extends State<KanaWritingScreen> {
   @override
   Widget build(BuildContext context) {
     final item = _kanaItems[_index];
+    final guide = _strokeGuideByKana[item.jp];
 
     return Scaffold(
       appBar: AppBar(
@@ -122,6 +130,16 @@ class _KanaWritingScreenState extends State<KanaWritingScreen> {
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
+                if (guide != null && guide.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '획 순서 가이드: ${guide.length}획',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Expanded(
                   child: ClipRRect(
@@ -143,7 +161,10 @@ class _KanaWritingScreenState extends State<KanaWritingScreen> {
                         });
                       },
                       child: CustomPaint(
-                        painter: _WritingPainter(points: _points),
+                        painter: _WritingPainter(
+                          points: _points,
+                          strokeGuide: guide,
+                        ),
                         child: const SizedBox.expand(),
                       ),
                     ),
@@ -215,9 +236,13 @@ class _KanaWritingScreenState extends State<KanaWritingScreen> {
 }
 
 class _WritingPainter extends CustomPainter {
-  const _WritingPainter({required this.points});
+  const _WritingPainter({
+    required this.points,
+    required this.strokeGuide,
+  });
 
   final List<Offset?> points;
+  final List<List<Offset>>? strokeGuide;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -228,15 +253,23 @@ class _WritingPainter extends CustomPainter {
       ..color = const Color(0xFFE8ECF2)
       ..strokeWidth = 1;
     canvas.drawLine(
-        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), grid);
+      Offset(size.width / 2, 0),
+      Offset(size.width / 2, size.height),
+      grid,
+    );
     canvas.drawLine(
-        Offset(0, size.height / 2), Offset(size.width, size.height / 2), grid);
+      Offset(0, size.height / 2),
+      Offset(size.width, size.height / 2),
+      grid,
+    );
 
     final border = Paint()
       ..color = const Color(0xFFD7DEE8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.4;
     canvas.drawRect(Offset.zero & size, border);
+
+    _paintGuides(canvas, size);
 
     final stroke = Paint()
       ..color = const Color(0xFF1F2A37)
@@ -253,8 +286,86 @@ class _WritingPainter extends CustomPainter {
     }
   }
 
+  void _paintGuides(Canvas canvas, Size size) {
+    if (strokeGuide == null || strokeGuide!.isEmpty) {
+      return;
+    }
+
+    final textStyle = const TextStyle(
+      color: Color(0xFF5F6F86),
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+    );
+
+    for (var i = 0; i < strokeGuide!.length; i++) {
+      final points = strokeGuide![i]
+          .map((p) => Offset(p.dx * size.width, p.dy * size.height))
+          .toList(growable: false);
+
+      final guide = Paint()
+        ..color = const Color(0xFFA9BCD8)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+
+      for (var j = 0; j < points.length - 1; j++) {
+        canvas.drawLine(points[j], points[j + 1], guide);
+      }
+
+      final dot = Paint()..color = const Color(0xFF7FA3D1);
+      canvas.drawCircle(points.first, 4, dot);
+
+      final tp = TextPainter(
+        text: TextSpan(text: '${i + 1}', style: textStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, points.first + const Offset(6, -12));
+    }
+  }
+
   @override
   bool shouldRepaint(covariant _WritingPainter oldDelegate) {
     return true;
   }
 }
+
+const Map<String, List<List<Offset>>> _strokeGuideByKana = {
+  'あ': [
+    [Offset(0.24, 0.23), Offset(0.58, 0.19)],
+    [Offset(0.43, 0.14), Offset(0.41, 0.81)],
+    [
+      Offset(0.55, 0.37),
+      Offset(0.7, 0.44),
+      Offset(0.62, 0.7),
+      Offset(0.36, 0.67),
+    ],
+  ],
+  'い': [
+    [Offset(0.36, 0.32), Offset(0.34, 0.74)],
+    [Offset(0.58, 0.3), Offset(0.56, 0.78)],
+  ],
+  'う': [
+    [Offset(0.32, 0.24), Offset(0.62, 0.24)],
+    [Offset(0.5, 0.31), Offset(0.5, 0.39)],
+    [
+      Offset(0.3, 0.5),
+      Offset(0.68, 0.48),
+      Offset(0.6, 0.77),
+      Offset(0.4, 0.8),
+    ],
+  ],
+  'ア': [
+    [Offset(0.3, 0.26), Offset(0.68, 0.22)],
+    [Offset(0.58, 0.24), Offset(0.43, 0.79)],
+  ],
+  'イ': [
+    [Offset(0.4, 0.24), Offset(0.34, 0.5)],
+    [Offset(0.58, 0.2), Offset(0.54, 0.79)],
+  ],
+  'ウ': [
+    [Offset(0.32, 0.25), Offset(0.66, 0.25)],
+    [Offset(0.5, 0.25), Offset(0.5, 0.37)],
+    [Offset(0.36, 0.39), Offset(0.66, 0.39), Offset(0.58, 0.78)],
+  ],
+};
