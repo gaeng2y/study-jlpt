@@ -18,6 +18,7 @@ import '../domain/usecases/get_due_queue_usecase.dart';
 import '../domain/usecases/get_today_summary_usecase.dart';
 import '../domain/usecases/grade_card_usecase.dart';
 import '../features/widgets_bridge/widget_cache_service.dart';
+import 'services/notification_service.dart';
 
 enum PlanMode { min3, min10, min20 }
 
@@ -61,6 +62,7 @@ class AppState extends ChangeNotifier {
   bool _loading = false;
   ProfileSettings _profileSettings = ProfileSettings.defaults;
   final WidgetCacheService _widgetCacheService = WidgetCacheService();
+  final NotificationService _notificationService = NotificationService.instance;
   StreamSubscription<AuthState>? _authSub;
 
   bool get loading => _loading;
@@ -99,6 +101,10 @@ class AppState extends ChangeNotifier {
     _bindAuthState();
     _contentItems = await _contentRepository.listAll();
     _profileSettings = await _profileRepository.getSettings();
+    await _notificationService.initialize();
+    await _notificationService.requestPermissions();
+    await _notificationService
+        .scheduleDailyReminder(_profileSettings.reminderTime);
     _summary = await _getTodaySummary();
     if (_contentItems.isNotEmpty) {
       _todayWord = _contentItems[Random().nextInt(_contentItems.length)];
@@ -186,11 +192,13 @@ class AppState extends ChangeNotifier {
     required String targetLevel,
     required int weeklyGoalReviews,
     required int dailyMinCards,
+    String? reminderTime,
   }) async {
     await updateLearningSettings(
       targetLevel: targetLevel,
       weeklyGoalReviews: weeklyGoalReviews,
       dailyMinCards: dailyMinCards,
+      reminderTime: reminderTime ?? _profileSettings.reminderTime,
       markOnboardingCompleted: true,
     );
   }
@@ -199,16 +207,20 @@ class AppState extends ChangeNotifier {
     required String targetLevel,
     required int weeklyGoalReviews,
     required int dailyMinCards,
+    String? reminderTime,
     bool markOnboardingCompleted = false,
   }) async {
     _profileSettings = _profileSettings.copyWith(
       targetLevel: targetLevel,
       weeklyGoalReviews: weeklyGoalReviews,
       dailyMinCards: dailyMinCards,
+      reminderTime: reminderTime ?? _profileSettings.reminderTime,
       onboardingCompleted:
           markOnboardingCompleted || _profileSettings.onboardingCompleted,
     );
     await _profileRepository.saveSettings(_profileSettings);
+    await _notificationService
+        .scheduleDailyReminder(_profileSettings.reminderTime);
     notifyListeners();
   }
 
@@ -244,6 +256,7 @@ class AppState extends ChangeNotifier {
       return;
     }
     await client.auth.signOut();
+    await _notificationService.cancelDailyReminder();
     _profileSettings = ProfileSettings.defaults;
     _summary = const TodaySummary(
       dueCount: 0,

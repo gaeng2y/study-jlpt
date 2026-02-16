@@ -20,6 +20,8 @@ Flutter(iOS/Android) 클라이언트와 Supabase(Postgres/Auth/RLS) 기반 학�
 - 홈 위젯 2종
   - DueCountWidget(오늘 복습 수)
   - DailyWordWidget(오늘의 단어)
+- 로컬 알림 스케줄링
+  - 프로필의 알림 시간(`HH:mm`) 기준 일일 알림 예약
 - 콘텐츠 조회/검색
 - 프로필 설정 변경
 

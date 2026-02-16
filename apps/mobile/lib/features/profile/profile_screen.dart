@@ -56,7 +56,7 @@ class ProfileScreen extends StatelessWidget {
                         '목표 레벨: ${settings.targetLevel}',
                         '주간 목표: ${settings.weeklyGoalReviews} cards',
                         '하루 최소 완료: ${settings.dailyMinCards} cards',
-                        '알림 시간: 21:00',
+                        '알림 시간: ${settings.reminderTime}',
                       ],
                     ),
                   ),
@@ -101,6 +101,7 @@ Future<void> _openSettingsEditor({
   String level = current.targetLevel;
   int weeklyGoal = current.weeklyGoalReviews;
   int dailyMin = current.dailyMinCards;
+  String reminderTime = current.reminderTime;
   bool saving = false;
 
   await showModalBottomSheet<void>(
@@ -153,6 +154,25 @@ Future<void> _openSettingsEditor({
                     onChanged: (v) => setModalState(() {
                       weeklyGoal = v.round();
                     }),
+                  ),
+                  const SizedBox(height: 6),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('알림 시간'),
+                    subtitle: Text(reminderTime),
+                    trailing: const Icon(Icons.access_time),
+                    onTap: () async {
+                      final picked = await _pickReminderTime(
+                        context: context,
+                        isIos: isIos,
+                        initial: reminderTime,
+                      );
+                      if (picked != null) {
+                        setModalState(() {
+                          reminderTime = picked;
+                        });
+                      }
+                    },
                   ),
                   const SizedBox(height: 6),
                   if (isIos)
@@ -208,6 +228,7 @@ Future<void> _openSettingsEditor({
                                 targetLevel: level,
                                 weeklyGoalReviews: weeklyGoal,
                                 dailyMinCards: dailyMin,
+                                reminderTime: reminderTime,
                               );
                               if (context.mounted) {
                                 Navigator.of(context).pop();
@@ -224,6 +245,73 @@ Future<void> _openSettingsEditor({
       );
     },
   );
+}
+
+Future<String?> _pickReminderTime({
+  required BuildContext context,
+  required bool isIos,
+  required String initial,
+}) async {
+  final parts = initial.split(':');
+  final hour = parts.length == 2 ? int.tryParse(parts[0]) ?? 21 : 21;
+  final minute = parts.length == 2 ? int.tryParse(parts[1]) ?? 0 : 0;
+
+  if (isIos) {
+    DateTime selected = DateTime(2026, 1, 1, hour, minute);
+    final result = await showCupertinoModalPopup<String>(
+      context: context,
+      builder: (context) {
+        return Container(
+          color: Colors.white,
+          height: 280,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: CupertinoButton(
+                    child: const Text('완료'),
+                    onPressed: () {
+                      final hh = selected.hour.toString().padLeft(2, '0');
+                      final mm = selected.minute.toString().padLeft(2, '0');
+                      Navigator.of(context).pop('$hh:$mm');
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.time,
+                    initialDateTime: selected,
+                    use24hFormat: true,
+                    onDateTimeChanged: (value) => selected = value,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    return result;
+  }
+
+  final picked = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay(hour: hour, minute: minute),
+    builder: (context, child) {
+      return MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child ?? const SizedBox.shrink(),
+      );
+    },
+  );
+  if (picked == null) {
+    return null;
+  }
+  final hh = picked.hour.toString().padLeft(2, '0');
+  final mm = picked.minute.toString().padLeft(2, '0');
+  return '$hh:$mm';
 }
 
 class _Panel extends StatelessWidget {

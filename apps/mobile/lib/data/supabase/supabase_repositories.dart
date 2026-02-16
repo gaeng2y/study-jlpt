@@ -206,7 +206,7 @@ class SupabaseProfileRepository implements ProfileRepository {
       row = await _client
           .from('profiles')
           .select(
-              'target_level, weekly_goal_reviews, daily_min_cards, onboarding_completed, exam_date')
+              'target_level, weekly_goal_reviews, daily_min_cards, onboarding_completed, reminder_time, exam_date')
           .eq('id', userId)
           .single();
     } on PostgrestException catch (e) {
@@ -218,7 +218,7 @@ class SupabaseProfileRepository implements ProfileRepository {
       row = await _client
           .from('profiles')
           .select(
-              'target_level, weekly_goal_reviews, daily_min_cards, exam_date')
+              'target_level, weekly_goal_reviews, daily_min_cards, reminder_time, exam_date')
           .eq('id', userId)
           .single();
     }
@@ -228,6 +228,7 @@ class SupabaseProfileRepository implements ProfileRepository {
       weeklyGoalReviews: (row['weekly_goal_reviews'] ?? 60) as int,
       dailyMinCards: (row['daily_min_cards'] ?? 3) as int,
       onboardingCompleted: (row['onboarding_completed'] ?? false) as bool,
+      reminderTime: (row['reminder_time'] ?? '21:00') as String,
       examDate: row['exam_date'] == null
           ? null
           : DateTime.tryParse(row['exam_date'] as String),
@@ -247,6 +248,7 @@ class SupabaseProfileRepository implements ProfileRepository {
         'weekly_goal_reviews': settings.weeklyGoalReviews,
         'daily_min_cards': settings.dailyMinCards,
         'onboarding_completed': settings.onboardingCompleted,
+        'reminder_time': settings.reminderTime,
         'exam_date': settings.examDate?.toIso8601String().split('T').first,
       }).eq('id', userId);
     } on PostgrestException catch (e) {
@@ -257,6 +259,7 @@ class SupabaseProfileRepository implements ProfileRepository {
         'target_level': settings.targetLevel,
         'weekly_goal_reviews': settings.weeklyGoalReviews,
         'daily_min_cards': settings.dailyMinCards,
+        'reminder_time': settings.reminderTime,
         'exam_date': settings.examDate?.toIso8601String().split('T').first,
       }).eq('id', userId);
     }

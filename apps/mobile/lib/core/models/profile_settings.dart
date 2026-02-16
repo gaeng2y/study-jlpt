@@ -4,6 +4,7 @@ class ProfileSettings {
     required this.weeklyGoalReviews,
     required this.dailyMinCards,
     required this.onboardingCompleted,
+    required this.reminderTime,
     this.examDate,
   });
 
@@ -11,6 +12,7 @@ class ProfileSettings {
   final int weeklyGoalReviews;
   final int dailyMinCards;
   final bool onboardingCompleted;
+  final String reminderTime;
   final DateTime? examDate;
 
   ProfileSettings copyWith({
@@ -18,6 +20,7 @@ class ProfileSettings {
     int? weeklyGoalReviews,
     int? dailyMinCards,
     bool? onboardingCompleted,
+    String? reminderTime,
     DateTime? examDate,
   }) {
     return ProfileSettings(
@@ -25,6 +28,7 @@ class ProfileSettings {
       weeklyGoalReviews: weeklyGoalReviews ?? this.weeklyGoalReviews,
       dailyMinCards: dailyMinCards ?? this.dailyMinCards,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      reminderTime: reminderTime ?? this.reminderTime,
       examDate: examDate ?? this.examDate,
     );
   }
@@ -34,5 +38,6 @@ class ProfileSettings {
     weeklyGoalReviews: 60,
     dailyMinCards: 3,
     onboardingCompleted: false,
+    reminderTime: '21:00',
   );
 }
