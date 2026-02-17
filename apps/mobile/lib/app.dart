@@ -187,9 +187,9 @@ class _BottomNav extends StatelessWidget {
           child: CupertinoTabBar(
             currentIndex: index,
             onTap: onChanged,
-            backgroundColor: Colors.transparent,
-            activeColor: Theme.of(context).colorScheme.primary,
-            inactiveColor: const Color(0xFF6A778B),
+            backgroundColor: Colors.white.withValues(alpha: 0.04),
+            activeColor: const Color(0xFF1F45A8),
+            inactiveColor: const Color(0xFF3F4F78),
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(CupertinoIcons.calendar_today),

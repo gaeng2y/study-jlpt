@@ -19,26 +19,51 @@ class GlassSurface extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(radius),
-            gradient: const LinearGradient(
-              colors: [Color(0xBFFFFFFF), Color(0x80FFFFFF)],
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFFFFFFFF).withValues(alpha: 0.34),
+                const Color(0xFFEDF2FF).withValues(alpha: 0.20),
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            border: Border.all(color: const Color(0x90FFFFFF), width: 1.1),
-            boxShadow: const [
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.30),
+              width: 1.1,
+            ),
+            boxShadow: [
               BoxShadow(
-                color: Color(0x22000000),
-                blurRadius: 18,
-                offset: Offset(0, 10),
+                color: const Color(0xFF0D1C4A).withValues(alpha: 0.16),
+                blurRadius: 30,
+                offset: const Offset(0, 14),
               ),
             ],
           ),
-          child: child,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withValues(alpha: 0.20),
+                  Colors.white.withValues(alpha: 0.02),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: IconTheme.merge(
+              data: const IconThemeData(color: Color(0xFF1B2A55)),
+              child: DefaultTextStyle.merge(
+                style: const TextStyle(color: Color(0xFF13203F)),
+                child: child,
+              ),
+            ),
+          ),
         ),
       ),
     );

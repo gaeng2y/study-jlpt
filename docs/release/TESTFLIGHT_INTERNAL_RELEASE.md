@@ -12,6 +12,7 @@
 2. `supabase/migrations/20260216202000_add_release_telemetry_tables.sql`
 3. `supabase/migrations/20260217022000_add_analytics_kpi_views.sql`
 4. `supabase/migrations/20260217023000_add_analytics_baseline_view.sql`
+- 전체 SQL 파일 분류/상태: `docs/release/SUPABASE_SQL_STATUS.md`
 
 ## 2) Flutter 준비
 ```bash

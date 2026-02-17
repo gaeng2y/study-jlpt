@@ -30,3 +30,7 @@ doc/api/
 
 # Local secrets
 .secrets/
+
+# macOS metadata
+.DS_Store
+**/.DS_Store

@@ -1,17 +1,51 @@
-# ileotoktok_mobile
+# Mobile App (Flutter)
 
-A new Flutter project.
+`apps/mobile`은 Study JLPT 클라이언트 앱입니다.
 
-## Getting Started
+## Run
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Quality Checks
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter analyze
+flutter test
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Build
+
+### iOS
+
+```bash
+flutter build ipa --release
+```
+
+### Android
+
+```bash
+flutter build appbundle --release
+```
+
+## Main Entry Points
+
+- App entry: `lib/main.dart`
+- App shell/router: `lib/app.dart`
+- Global state: `lib/shared/app_state.dart`
+- Theme: `lib/core/theme/app_theme.dart`
+
+## Feature Modules
+
+- `lib/features/auth`
+- `lib/features/onboarding`
+- `lib/features/today`
+- `lib/features/study`
+- `lib/features/content`
+- `lib/features/profile`
+
+## Telemetry
+
+이벤트 스펙은 루트 문서 `docs/ANALYTICS_EVENT_SPEC.md`를 따릅니다.

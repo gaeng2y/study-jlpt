@@ -27,7 +27,7 @@ class TodayScreen extends StatelessWidget {
         return Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFFFFF7ED), Color(0xFFF2FBFC)],
+              colors: [Color(0xFFE5EDFF), Color(0xFFF1F5FF), Color(0xFFDFFAF4)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -204,12 +204,9 @@ class _PlanButton extends StatelessWidget {
       );
     }
 
-    return FilledButton.tonal(
+    return FilledButton(
       onPressed: onTap,
-      style: FilledButton.styleFrom(
-        padding: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
+      style: FilledButton.styleFrom(padding: const EdgeInsets.all(16)),
       child: Row(
         children: [
           const Icon(Icons.play_circle_outline),

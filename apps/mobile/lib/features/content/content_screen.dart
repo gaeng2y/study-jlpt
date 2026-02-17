@@ -32,12 +32,14 @@ class _ContentScreenState extends State<ContentScreen> {
         return Scaffold(
           body: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isIos
-                    ? const [Color(0xFFEFF5FF), Color(0xFFF7FBFF)]
-                    : const [Color(0xFFFFF8EF), Color(0xFFF3FBFC)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFFE5EDFF),
+                  Color(0xFFF1F5FF),
+                  Color(0xFFDFFAF4)
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
             child: SafeArea(
@@ -185,18 +187,6 @@ class _SearchField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: '단어/읽기/뜻 검색',
         prefixIcon: const Icon(Icons.search),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-              color: isIos ? const Color(0x99FFFFFF) : const Color(0xFFE6DED2)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-              color: isIos ? const Color(0x99FFFFFF) : const Color(0xFFE6DED2)),
-        ),
-        filled: true,
-        fillColor: isIos ? Colors.white.withOpacity(0.45) : Colors.white,
       ),
       onChanged: onChanged,
     );

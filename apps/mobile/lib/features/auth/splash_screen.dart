@@ -7,17 +7,13 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIos = Theme.of(context).platform == TargetPlatform.iOS;
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isIos
-                ? const [Color(0xFFEAF3FF), Color(0xFFF8FCFF)]
-                : const [Color(0xFFFFF6EA), Color(0xFFF0FAFF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+          gradient: const LinearGradient(
+            colors: [Color(0xFFE5EDFF), Color(0xFFF1F5FF), Color(0xFFDFFAF4)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
         child: const SafeArea(

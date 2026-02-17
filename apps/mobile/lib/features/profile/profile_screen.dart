@@ -36,12 +36,14 @@ class ProfileScreen extends StatelessWidget {
           ),
           body: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isIos
-                    ? const [Color(0xFFEFF5FF), Color(0xFFF6FBFF)]
-                    : const [Color(0xFFFFF8EF), Color(0xFFF3FBFC)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFFE5EDFF),
+                  Color(0xFFF1F5FF),
+                  Color(0xFFDFFAF4)
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
             child: SafeArea(
