@@ -31,7 +31,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
   int _index = 0;
   bool _loading = true;
   bool _submitting = false;
-  bool _nativeUnsupported = false;
+  final bool _nativeUnsupported = false;
   bool _speaking = false;
   String? _lastGradeLabel;
   Timer? _gradeLabelTimer;
@@ -246,7 +246,7 @@ class _StudySessionScreenState extends State<StudySessionScreen> {
                 );
               }
               await widget.state.completeSession();
-              if (!mounted) {
+              if (!context.mounted) {
                 return;
               }
               Navigator.of(context).maybePop();

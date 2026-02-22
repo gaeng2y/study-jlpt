@@ -33,7 +33,7 @@ void main() {
     );
     canvas.drawRRect(base, bgPaint);
 
-    final bubblePaint = Paint()..color = Colors.white.withOpacity(0.95);
+    final bubblePaint = Paint()..color = Colors.white.withValues(alpha: 0.95);
     final bubbleR = size * 0.16;
     canvas.drawCircle(Offset(size * 0.38, size * 0.38), bubbleR, bubblePaint);
     canvas.drawCircle(
