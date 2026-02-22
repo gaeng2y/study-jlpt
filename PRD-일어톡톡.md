@@ -101,8 +101,8 @@
 - DueCountWidget: `복습 N개 · 약 M분`
 - DailyWordWidget: 오늘의 단어 1개
 - 딥링크:
-  - `ileotoktok://review`
-  - `ileotoktok://content/<uuid>`
+  - `studyjlpt://review`
+  - `studyjlpt://content/<uuid>`
 
 수용 기준:
 - 위젯 탭 시 즉시 해당 화면 진입
