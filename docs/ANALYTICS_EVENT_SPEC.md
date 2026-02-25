@@ -123,6 +123,13 @@
 - Properties:
   - `type` (`review` | `daily_word`)
 
+16. `freeze_used`
+- Trigger: Today 화면에서 freeze 수동 사용 성공
+- Properties:
+  - `freeze_before` (int)
+  - `freeze_after` (int)
+  - `cards_done` (int)
+
 ## SQL 조회 예시
 ```sql
 -- 최근 7일 플랜 선택 비율

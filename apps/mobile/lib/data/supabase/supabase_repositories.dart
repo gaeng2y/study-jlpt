@@ -207,6 +207,26 @@ class SupabaseStudyRepository implements StudyRepository {
     }
     await _client.rpc('mark_today_complete');
   }
+
+  @override
+  Future<bool> useTodayFreeze() async {
+    final userId = _userId;
+    if (userId == null) {
+      return false;
+    }
+
+    final result = await _client.rpc('use_today_freeze');
+    if (result is bool) {
+      return result;
+    }
+    if (result is num) {
+      return result != 0;
+    }
+    if (result is String) {
+      return result.toLowerCase() == 'true';
+    }
+    return false;
+  }
 }
 
 ContentItem? _parseContentRow(Map<String, dynamic> row) {

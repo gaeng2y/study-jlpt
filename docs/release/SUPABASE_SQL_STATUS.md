@@ -1,6 +1,6 @@
 # Supabase SQL Status
 
-기준일: 2026-02-17
+기준일: 2026-02-25
 
 ## 1) Migrations (이력 보존, 삭제 금지)
 아래 파일은 모두 `supabase/migrations/`에 있고, 적용 대상입니다.
@@ -13,6 +13,7 @@
 6. `20260216202000_add_release_telemetry_tables.sql`
 7. `20260217022000_add_analytics_kpi_views.sql`
 8. `20260217023000_add_analytics_baseline_view.sql`
+9. `20260225103000_add_use_today_freeze_rpc.sql`
 
 ## 2) Non-migration SQL
 - Seed:

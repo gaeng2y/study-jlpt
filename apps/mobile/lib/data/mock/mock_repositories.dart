@@ -42,6 +42,9 @@ class MockStudyRepository implements StudyRepository {
 
   final List<StudyCard> _queue;
   final Set<String> _learnedIds = <String>{};
+  int _freezeLeft = 1;
+  int _cardsDone = 0;
+  bool _isCompleted = false;
 
   @override
   Future<int> dueCount() async => _queue.length;
@@ -58,9 +61,9 @@ class MockStudyRepository implements StudyRepository {
       newCount: 5,
       estMinutes: (due / 4).ceil().clamp(1, 60),
       streak: 6,
-      freezeLeft: 1,
-      cardsDone: 0,
-      isCompleted: false,
+      freezeLeft: _freezeLeft,
+      cardsDone: _cardsDone,
+      isCompleted: _isCompleted,
     );
   }
 
@@ -73,6 +76,10 @@ class MockStudyRepository implements StudyRepository {
   Future<void> gradeCard({required StudyCard card, required bool good}) async {
     _learnedIds.add(card.content.id);
     _queue.removeWhere((element) => element.content.id == card.content.id);
+    _cardsDone += 1;
+    if (_cardsDone >= 3) {
+      _isCompleted = true;
+    }
 
     if (!good) {
       _queue.add(
@@ -90,7 +97,20 @@ class MockStudyRepository implements StudyRepository {
   }
 
   @override
-  Future<void> completeTodaySession() async {}
+  Future<void> completeTodaySession() async {
+    _cardsDone = _cardsDone < 3 ? 3 : _cardsDone;
+    _isCompleted = true;
+  }
+
+  @override
+  Future<bool> useTodayFreeze() async {
+    if (_isCompleted || _cardsDone > 0 || _freezeLeft <= 0) {
+      return false;
+    }
+    _freezeLeft -= 1;
+    _isCompleted = true;
+    return true;
+  }
 }
 
 class MockProfileRepository implements ProfileRepository {

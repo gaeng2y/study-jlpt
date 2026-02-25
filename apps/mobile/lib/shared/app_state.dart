@@ -212,6 +212,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> useTodayFreeze() async {
+    final freezeBefore = _summary.freezeLeft;
+    final applied = await _studyRepository.useTodayFreeze();
+    _summary = await _getTodaySummary();
+    await _refreshWidgetCache();
+
+    if (applied) {
+      await _telemetry.logEvent('freeze_used', {
+        'freeze_before': freezeBefore,
+        'freeze_after': _summary.freezeLeft,
+        'cards_done': _summary.cardsDone,
+      });
+    }
+
+    notifyListeners();
+    return applied;
+  }
+
   Future<void> searchContent(String query) async {
     _contentItems = await _contentRepository.search(query);
     final trimmed = query.trim();

@@ -8,4 +8,5 @@ abstract class StudyRepository {
   Future<Set<String>> learnedContentIds();
   Future<TodaySummary> todaySummary();
   Future<void> completeTodaySession();
+  Future<bool> useTodayFreeze();
 }
